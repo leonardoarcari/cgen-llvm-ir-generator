@@ -1,5 +1,9 @@
 ; LLVM IR generator support routines.
 
+; #t if multiple isa support is enabled
+(define -with-multiple-isa? #f)
+(define (with-multiple-isa?) -with-multiple-isa?)
+
 ; Specify which application.
 (set! APPLICATION 'IR-GEN)
 

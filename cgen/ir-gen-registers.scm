@@ -82,7 +82,7 @@
 ; Subroutine of -gen-global-vars to generate the allocation of new global var
 ; E.g.:
 ; new llvm::GlobalVariable(Module, 
-;													 llvm::Type::getInt32Ty(llvm::getGlobalContext()),
+;	                         llvm::Type::getInt32Ty(llvm::getGlobalContext()),
 ;                          false,
 ;                          llvm::GlobalValue::LinkageTypes::ExternalLinkage,
 ;                          llvm::ConstantInt::get(llvm::getGlobalContext(),

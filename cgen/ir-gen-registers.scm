@@ -14,12 +14,12 @@
 
 (define (-log-hw-info hw)
 	(logit 3 
-		"DEBUGGING INFO of " (obj:name hw)
-		" <sem-name>: " (hw-sem-name hw)
-		" <Comment>: "(obj:comment hw)
-		" <Mode>: [<Class>: " (mode:class (hw-mode hw))
-		" <Bytes>: " (mode:bytes (hw-mode hw)) "]"
-		" <Length>: " (hw-num-elms hw)"\n"
+		"\nDEBUGGING INFO of " (obj:name hw) "\n"
+		"  <sem-name>:\t" (hw-sem-name hw) "\n"
+		"  <Comment>:\t"(obj:comment hw) "\n"
+		"  <Mode>:\t[<Class>: " (mode:class (hw-mode hw)) 
+		"  <Bytes>: " (mode:bytes (hw-mode hw)) "]" "\n"
+		"  <Length>:\t" (hw-num-elms hw)"\n"
 		; FIX Debug info for hw indices. Works for lm32 but crashes for cris.cpu
 		; (if (hw-indices hw)
 		;  (string-list "Name:\t" 
@@ -38,11 +38,36 @@
   (and (register? hw) (not (obj-has-attr? hw 'VIRTUAL)))
 )
 
+; Extract register index given its name
+(define (reg-index hw reg-name)
+  (if (not (hw-indices hw)) ; Are we a set of registers?
+    #f ; If not return #f
+    ; Otherwise look for a register whose name equals? 
+    ; reg-name and return its index
+    (let ((values (kw-values (hw-indices hw))))
+      ; Car is required here because find returns a list
+      ; containing a single pair, which contains name and
+      ; index of the found register
+      (list-ref (car (find
+        (lambda (v)
+          (equal? (list-ref v 0) reg-name)
+        )
+        values)) 1)
+    )
+  )
+)
+
+; Add llvm::GlobalVariable* to corresponding register table for an
+; easier runtime lookup
+(define (-gen-store-reg-table gv-name hw) 
+  #f
+)
+
 ; Coroutine of -gen-new-global to generate the llvm::Type* of the global 
 ; variable to be allocated
 
 (define (-gen-reg-type hw)
-	(logit 3 "Generating GlobalVariable Type\n")
+	(logit 3 "\tGenerating GlobalVariable Type\n")
 	(let ((class (mode:class (hw-mode hw)))
 		(ty "Int32")
 		(size (mode:bits (hw-mode hw))))
@@ -59,7 +84,7 @@
 ; variable to be allocated
 
 (define (-gen-reg-initializer hw)
-	(logit 3 "Generating GlobalVariable initializer\n")
+	(logit 3 "\tGenerating GlobalVariable initializer\n")
 	(let ((class (mode:class (hw-mode hw)))
 		(size (mode:bits (hw-mode hw))))
 		(cond
@@ -90,8 +115,9 @@
 ;                          "r0");
 
 (define (-gen-new-global hw name)
-	(logit 3 "Generating GlobalVariable new statement\n")
-	(string-append "new llvm::GlobalVariable(M,\n"
+	(logit 3 "Generating \"new llvm::GlobalVariable\" statement for " name "\n")
+	(string-append "auto " (symbol->string name) " = "
+        "new llvm::GlobalVariable(M,\n"
 				(-gen-reg-type hw) ",\n"; Type
 				"false,\n" ; isConstant
 				"llvm::GlobalValue::LinkageTypes::ExternalLinkage,\n" ; Linkage
@@ -107,19 +133,20 @@
 ; and allocate a single global variable for each of them.
 
 (define (-gen-array-vars hw)
-	(logit 3 "Generating new GlobalVariable statements for register in array type\n")
+	(logit 3 "Generating new GlobalVariable statements for register " 
+    (obj:name hw) " in array type\n")
 	(let ((i 0)
 		(str "") ; Final set of "new llvm::GlobalVariable" statements
 		(reg-name "") ; Iteration register name
 		(history '()) ; List of already allocated registers' indices
 		(values (kw-values (hw-indices hw)))) ; list of <reg-name, index> pairs
 			(while (< i (length values)) ; Cycle over the number of declared registers
-				(logit 3 "history: " history "\n")
+				(logit 4 "history: " history "\n")
 				(if (hw-indices hw) ; Check if we have a list of values (??? Probabily already checked)
 					(set! reg-name (list-ref (list-ref values i) 0)) ; Set i-th register name
 					(set! reg-name 'pc) ; Temporary value. Must check if it's really a PC
 				)
-				(logit 3 "Checking index: " (list-ref (list-ref values i) 1) "\n")
+				(logit 4 "Checking index: " (list-ref (list-ref values i) 1) "\n")
 
 				; In many .cpu hardware descriptions the same register (identified by
 				; an decimal index) is named multiple times (e.g. it has some special

@@ -18,7 +18,7 @@ Here's a brief list of tasks to be accomplished for a working prototype of the g
 To test out the global variables allocation for the CPU registers run the following, after ```cding``` to _cgen_ folder
 
 ```
-guile -l guile.scm cgen-ir.scm -v -v -v -s . -a ../cpu/<cpu>.cpu -R <output_filename>.h
+guile -l guile.scm cgen-ir.scm -v -v -v -m <arch_name> -s . -a ../cpu/<cpu>.cpu -R <output_filename>.h
 ```
 
 [1]: https://sourceware.org/cgen/

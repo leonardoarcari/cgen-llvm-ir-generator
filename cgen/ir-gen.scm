@@ -7,6 +7,26 @@
 ; Specify which application.
 (set! APPLICATION 'IR-GEN)
 
+; Sanitize an element name to be a valid C++ variable name.
+; @param name must be a valid string or a symbol
+(define (sanitize-elm-name name)
+  (let ((str ""))
+    (if (string? name)
+      (set! str name)
+      (set! str (symbol->string name))
+    )
+    (string-for-each-index
+      (lambda (i)
+        (if (equal? #\- (string-ref str i))
+          (string-set! str i #\_)
+        )
+      )
+      str
+    )
+    (string->symbol str)
+  )
+) 
+
 ; Requested to be provided by "set-cgen-options!"
 (define (option-init!)
 	*UNSPECIFIED*

@@ -116,13 +116,13 @@
 
 (define (-gen-new-global hw name)
 	(logit 3 "Generating \"new llvm::GlobalVariable\" statement for " name "\n")
-	(string-append "auto " (symbol->string name) " = "
+	(string-append "auto " (string-downcase (symbol->string name)) " = "
         "new llvm::GlobalVariable(M,\n"
 				(-gen-reg-type hw) ",\n"; Type
 				"false,\n" ; isConstant
 				"llvm::GlobalValue::LinkageTypes::ExternalLinkage,\n" ; Linkage
 				(-gen-reg-initializer hw) ",\n" ; Initializer
-				"\"" (symbol->string name) "\""; Name
+				"\"" (string-downcase (symbol->string name)) "\""; Name
 				");\n"
 	)
 )
@@ -178,10 +178,11 @@
 			(lambda (hw)
 				(-log-hw-info hw)
 				(string-list
-					(if (not (hw-scalar? hw))
-						(-gen-array-vars hw)
-						(-gen-new-global hw 'pc)
-					); Test if single or array
+					(if (not (hw-scalar? hw)) ; Test if single or array
+						(-gen-array-vars hw) ; Array of registers
+						(-gen-new-global hw 
+              (sanitize-elm-name (hw-sem-name hw))) ; Single register declaration
+          ) 
 				)
 			)
 			(find hw-need-storage? hw-list))

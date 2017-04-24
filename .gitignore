@@ -1,2 +1,3 @@
 .fuse*
 *.sublime*
+cgen/*-output

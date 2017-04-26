@@ -215,6 +215,8 @@
 	(logit 1 "Generating register creation\n")
 	(logit 2 "Current Arch Name: " (current-arch-name) "\n")
 
+  (ir-gen-analyze-insns!)
+
 	(string-write
 		(-gen-reg-includes)
 		(-gen-registers-creation)

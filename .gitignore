@@ -1,3 +1,4 @@
 .fuse*
 *.sublime*
 cgen/*-output
+demo/*-output

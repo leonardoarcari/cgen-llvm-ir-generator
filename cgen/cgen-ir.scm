@@ -7,6 +7,7 @@
   (load (string-append srcdir "/read.scm"))
   (load (string-append srcdir "/ir-gen.scm"))
   (load (string-append srcdir "/ir-gen-registers.scm"))
+  (load (string-append srcdir "/ir-gen-decoder.scm"))
 )
 
 ; 
@@ -15,6 +16,9 @@
 		(list "-R" "file" "generate registers.h in <file>"
 		#f
 		(lambda (arg) (file-write arg registers.h)))
+		(list "-D" "file" "generate decoder.h in <file>"
+		#f
+		(lambda (arg) (file-write arg decoder.h)))
 	)
 )
 

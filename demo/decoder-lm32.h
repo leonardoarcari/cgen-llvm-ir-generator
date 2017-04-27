@@ -400,7 +400,7 @@ protected:
 };
 
 /* Derived Instruction classes */
-class EmptyInstruction {
+class EmptyInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -408,7 +408,7 @@ private:
 
 };
 
-class AddInstruction {
+class AddInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -419,7 +419,7 @@ private:
 
 };
 
-class AddiInstruction {
+class AddiInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -430,7 +430,7 @@ private:
 
 };
 
-class AndiInstruction {
+class AndiInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -441,7 +441,7 @@ private:
 
 };
 
-class AndhiiInstruction {
+class AndhiiInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -452,7 +452,7 @@ private:
 
 };
 
-class BInstruction {
+class BInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -461,7 +461,7 @@ private:
 
 };
 
-class BiInstruction {
+class BiInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -470,7 +470,7 @@ private:
 
 };
 
-class BeInstruction {
+class BeInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -481,7 +481,7 @@ private:
 
 };
 
-class CallInstruction {
+class CallInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -490,7 +490,7 @@ private:
 
 };
 
-class CalliInstruction {
+class CalliInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -499,7 +499,7 @@ private:
 
 };
 
-class DivuInstruction {
+class DivuInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -510,7 +510,7 @@ private:
 
 };
 
-class LbInstruction {
+class LbInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -521,7 +521,7 @@ private:
 
 };
 
-class LhInstruction {
+class LhInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -532,7 +532,7 @@ private:
 
 };
 
-class LwInstruction {
+class LwInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -543,7 +543,7 @@ private:
 
 };
 
-class OriInstruction {
+class OriInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -554,7 +554,7 @@ private:
 
 };
 
-class RcsrInstruction {
+class RcsrInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -564,7 +564,7 @@ private:
 
 };
 
-class SbInstruction {
+class SbInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -575,7 +575,7 @@ private:
 
 };
 
-class SextbInstruction {
+class SextbInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -585,7 +585,7 @@ private:
 
 };
 
-class ShInstruction {
+class ShInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -596,7 +596,7 @@ private:
 
 };
 
-class SlInstruction {
+class SlInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -607,7 +607,7 @@ private:
 
 };
 
-class SwInstruction {
+class SwInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -618,7 +618,7 @@ private:
 
 };
 
-class UserInstruction {
+class UserInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -630,7 +630,7 @@ private:
 
 };
 
-class WcsrInstruction {
+class WcsrInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }
@@ -640,7 +640,7 @@ private:
 
 };
 
-class BreakInstruction {
+class BreakInstruction : public Instruction {
 public:
   void parseSfmt(uint32_t code) {
   }

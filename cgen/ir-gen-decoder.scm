@@ -1,4 +1,5 @@
-; TODO: Comment
+; Returns the C++ code to assign to 'insn' variable a 
+; newly allocated std::unique_ptr<EmptyInstruction> 
 
 (define (-gen-decode-default-entry indent invalid-insn fn?)
   (string-append
@@ -8,6 +9,8 @@
 )
 
 ; Return the code for one insn entry.
+;
+; ENTRY is the entry to decode.
 ; REST is the remaining entries.
 
 (define (-gen-decode-insn-entry entry rest indent invalid-insn fn?)
@@ -59,12 +62,24 @@
 
 ; Generate code to decode the expression table in ENTRY.
 ; INVALID-INSN is the <insn> object of the pseudo insn to handle invalid ones.
+; WARNING: At current date we have no clue about what an expression entry
+; in the table-guts is. This is not required by lm32 or cris either. More
+; investigation is required here.
 
 (define (-gen-decode-expr-entry entry indent invalid-insn fn?)
   ""
 )
 
-; TODO: Comment
+; Returns the C++ code of the case when TABLE entry is itself a table
+; (i.e. we are moving down in the tree implemented by 'table-guts').
+; We emit the case for TABLE 'index' and recursevely call -gen-decoder-switch
+; on TABLE, nesting a switch/case block within the current one.
+;
+; TABLE is the entry to decode.
+; REST is the remaining entries.
+; SWITCH-NUM, STARTBIT, DECODE-BITSIZE, INDENT, LSB0?, INVALID-INSN are same
+; as for -gen-decoder-switch.
+
 (define (-gen-decode-table-entry table rest switch-num startbit decode-bitsize indent lsb0? invalid-insn fn?)
   (assert (eq? 'table (dtable-entry-type table)))
   (logit 3 "Generating decode table entry for case " (dtable-entry-index table) " ...\n")
@@ -120,6 +135,7 @@
   #f))
 )
 
+; ============ FROM CGEN / utils-sim.scm ============
 ; Subroutine of -gen-decoder-switch, sort ENTRIES according to desired
 ; print order (maximizes amount of fall-throughs, but maintains numerical
 ; order as much as possible).
@@ -154,7 +170,15 @@
         (loop (cdr entries) result)))))
 )
 
-; TODO: Comment
+; Generates switch statement to decode TABLE-GUTS.
+; SWITCH-NUM is for compatibility with the computed goto decoder and
+; isn't used. (??? So can be removed for LLVM IR purposes?)
+; STARTBIT is the bit offset of the instruction value that C variable `insn'
+; holds (note that this is independent of LSB0?).
+; DECODE-BITSIZE is the number of bits of the insn that `insn' holds.
+; LSB0? is non-#f if bit number 0 is the least significant bit.
+; INVALID-INSN is the <insn> object of the pseudo insn to handle invalid ones.
+
 (define (-gen-decoder-switch switch-num startbit decode-bitsize table-guts
            indent lsb0? invalid-insn fn?)
   ; For entries that are a single insn, we are done, otherwise recurse.
@@ -189,7 +213,13 @@
   )
 )
 
-; TODO: Comment
+; Entry point for decoder generation.
+; Generates the C++ code to decode INSN-LIST.
+; BITNUMS is the set of bits to initially key off of.
+; DECODE-BITSIZE is the number of bits of the instruction that `insn' holds.
+; LSB0? is non-#f if bit number 0 is the least significant bit.
+; INVALID-INSN is the <insn> object of the pseudo insn to handle invalid ones.
+; FN? is non-#f if the extractors are functions rather than inline code
 
 (define (gen-decoder insn-list bitnums decode-bitsize indent lsb0? invalid-insn fn?)
   (logit 3 "Building decode tree.\n"
@@ -209,42 +239,6 @@
     (-gen-decoder-switch "0" 0 decode-bitsize table-guts indent lsb0?
        invalid-insn fn?)
   )
-)
-
-; ============ FROM CGEN / utils-gen.scm ============
-; Subroutine of gen-extract-ifields to compute arguments for -extract-chunk
-; to extract values beyond the base insn.
-; This is also used by gen-define-ifields to know how many vars are needed.
-;
-; The result is a list of (offset . length) pairs.
-;
-; ??? Here's a case where explicitly defined instruction formats can
-; help - without them we can only use heuristics (which must evolve).
-; At least all the details are tucked away here.
-
-(define (-extract-chunk-specs base-length total-length alignment)
-  (let ((chunk-length
-   (case alignment
-     ; For the aligned and forced case split the insn up into base-insn
-     ; sized chunks.  For the unaligned case, use a chunk-length of 32.
-     ; 32 was chosen because the values are extracted into portable ints.
-     ((aligned forced) (min base-length 32))
-     ((unaligned) 32)
-     (else (error "unknown alignment" alignment)))))
-    (let loop ((start base-length)
-         (remaining (- total-length base-length))
-         (result nil))
-      (if (<= remaining 0)
-    (reverse! result)
-    (loop (+ start chunk-length)
-    (- remaining chunk-length)
-    ; Always fetch full CHUNK-LENGTH-sized chunks here,
-    ; even if we don't actually need that many bytes.
-    ; gen-ifetch only handles "normal" fetch sizes,
-    ; and -gen-extract-word already knows how to find what
-    ; it needs if we give it too much.
-    (cons (cons start chunk-length)
-          result)))))
 )
 
 ; Returns C++ code to declare Instruction class member to hold ifield F
@@ -273,7 +267,10 @@
   )
 )
 
-; TODO: Comment
+; =========== TEMPORARY ===========
+; Returns C++ code declaring and defining a derived Instruction
+; class. The generated class has memebers to hold and implements the strategy
+; to decode <sformat> SFMT.
 
 (define (-gen-parseSfmt sfmt)
   (logit 2 "Generating parseSfmt implementation for \"" (obj:name sfmt) "\" ...\n" 
@@ -281,7 +278,7 @@
   (string-list
     ; Temporary generation of derived instruction class
     ; declaration / definition
-    "class " (gen-sfmt-class-name sfmt) " {\n"
+    "class " (gen-sfmt-class-name sfmt) " : public Instruction {\n"
     "public:\n"
     "  void parseSfmt(uint32_t code) {\n"
     "" ; Fields extraction
@@ -293,14 +290,19 @@
   )
 )
 
-; TODO: Comment
+; =========== TEMPORARY ===========
+; Entry point of derived Instruction classes generation.
 
 (define (-gen-all-parseSfmt)
   (logit 2 "Generating parseSfmt implementations...\n")
   (string-list-map -gen-parseSfmt (current-sfmt-list))
 )
 
-; TODO: Comment
+; TODO: Comment to deeply explain how decoder works for us
+; To mention:
+;   - Instruction factory.
+;   - Virtual strategy method to be overridden by derived class
+;     implementing the strategy to decode an instruction word.
 
 (define (-gen-decode-fn insn-list initial-bitnums lsb0?)
   (logit 3 "Insn-list: \n")

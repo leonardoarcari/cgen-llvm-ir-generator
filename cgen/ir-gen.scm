@@ -47,8 +47,8 @@
 
 ; Returns the class name of SFMT in the generated C++ translator.
 ; E.g.: 
-; SFMT is a "sfmt-addi" -> AddiInstruction
-; SFMT is a "sfmt-empty" -> EmptyInstruction
+; SFMT is a "sfmt-addi" -> AddiSFormat
+; SFMT is a "sfmt-empty" -> EmptySFormat
 
 (define (gen-sfmt-class-name sfmt)
   (assert (class-instance? <sformat> sfmt))
@@ -56,7 +56,7 @@
   (let ((name (symbol->string (obj:name sfmt))))
     (string-append
       (string-capitalize (substring name (string-length "sfmt-")))
-      "Instruction"
+      "SFormat"
     )
   )
 )
@@ -84,6 +84,23 @@
   (assert (ifield? ifld))
 
   (gen-mode-cpp-type (ifld-decode-mode ifld))
+)
+
+; Return C++ code to fetch a value from instruction memory.
+; PC-VAR is the C++ expression containing the address of the start of the
+; instruction
+
+(define (gen-ir-ifetch pc-var bitoffset bitsize)
+  (string-append "getInstruction<"
+    (case bitsize
+      ((8) "uint8_t")
+      ((16) "uint16_t")
+      ((32) "uint32_t")
+      (else (error "bad bitsize argument to gen-ir-ifetch" bitsize))
+    )
+    ">(" pc-var " + " (number->string (quotient bitoffset 8))
+    ")"
+  )
 )
 
 ; Scan insns, analyzing semantics and computing instruction formats.

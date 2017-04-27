@@ -16,9 +16,12 @@
 		(list "-R" "file" "generate registers.h in <file>"
 		#f
 		(lambda (arg) (file-write arg registers.h)))
-		(list "-D" "file" "generate decoder.h in <file>"
+		(list "-T" "file" "generate decoder.h in <file>"
 		#f
 		(lambda (arg) (file-write arg decoder.h)))
+		(list "-D" "file" "generate decoder.h in <file>"
+		#f
+		(lambda (arg) (file-write arg decoder.cpp)))
 	)
 )
 

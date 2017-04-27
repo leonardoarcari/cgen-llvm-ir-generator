@@ -84,6 +84,7 @@
 ; variable to be allocated
 
 (define (-gen-reg-initializer hw)
+  ; Prefer get(IntegerType..., uint64)
 	(logit 3 "\tGenerating GlobalVariable initializer\n")
 	(let ((class (mode:class (hw-mode hw)))
 		(size (mode:bits (hw-mode hw))))
@@ -116,7 +117,7 @@
 
 (define (-gen-new-global hw name)
 	(logit 3 "Generating \"new llvm::GlobalVariable\" statement for " name "\n")
-	(string-append "auto " (string-downcase (symbol->string name)) " = "
+	(string-append "auto *" (string-downcase (symbol->string name)) " = "
         "new llvm::GlobalVariable(M,\n"
 				(-gen-reg-type hw) ",\n"; Type
 				"false,\n" ; isConstant
@@ -194,6 +195,8 @@
 (define (-gen-registers-creation)
 	(string-list
 		"// Test generating some register information\n\n"
+    ; Add using namespace and remove llvm:: 
+    ; Try to afctorize type variable
 		"void createRegisters(llvm::Module &M) {"
 		; Let's restrict ourselves only to single ISA architectures
 		(-gen-global-vars 

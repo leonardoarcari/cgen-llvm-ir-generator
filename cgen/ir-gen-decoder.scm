@@ -1,3 +1,30 @@
+; Returns C++ prototype of 'parseSfmt()' method
+; of Instruction class.
+; NAMESPACE is the string representation of parseSfmt()
+;   method to be prepended to the method name, #f if no namespace
+;   (e.g.: eq? NAMESPACE "AddInstruction" -> AddInstruction::parseSfmt()) 
+
+(define (-gen-parse-sfmt-proto namespace)
+  (string-append
+    "void "
+    (if namespace
+      (string-append namespace "::")
+      ""
+    )
+    "parseSfmt(uint8_t *code)" 
+  )
+) 
+
+; Returns the C++ code to perform header includes
+
+(define (-gen-decoder-cpp-includes)
+  (string-append
+    "#include <cstdint>\n"
+    "#include <memory>\n"
+    "\n"
+  )
+)
+
 ; Returns the C++ code to assign to 'insn' variable a 
 ; newly allocated std::unique_ptr<EmptyInstruction> 
 
@@ -267,44 +294,13 @@
   )
 )
 
-; =========== TEMPORARY ===========
-; Returns C++ code declaring and defining a derived Instruction
-; class. The generated class has memebers to hold and implements the strategy
-; to decode <sformat> SFMT.
-
-(define (-gen-parseSfmt sfmt)
-  (logit 2 "Generating parseSfmt implementation for \"" (obj:name sfmt) "\" ...\n" 
-    "\t<Key>: \"" (sfmt-key sfmt) "\"\n")
-  (string-list
-    ; Temporary generation of derived instruction class
-    ; declaration / definition
-    "class " (gen-sfmt-class-name sfmt) " : public Instruction {\n"
-    "public:\n"
-    "  void parseSfmt(uint32_t code) {\n"
-    "" ; Fields extraction
-    "  }\n"
-    "private:\n"
-    "" ; Fields
-    (gen-insn-class-ifields (sfmt-iflds sfmt) (sfmt-length sfmt) "  ") "\n"
-    "};\n\n"
-  )
-)
-
-; =========== TEMPORARY ===========
-; Entry point of derived Instruction classes generation.
-
-(define (-gen-all-parseSfmt)
-  (logit 2 "Generating parseSfmt implementations...\n")
-  (string-list-map -gen-parseSfmt (current-sfmt-list))
-)
-
 ; TODO: Comment to deeply explain how decoder works for us
 ; To mention:
 ;   - Instruction factory.
 ;   - Virtual strategy method to be overridden by derived class
 ;     implementing the strategy to decode an instruction word.
 
-(define (-gen-decode-fn insn-list initial-bitnums lsb0?)
+(define (-gen-insn-class-make insn-list initial-bitnums lsb0?)
   (logit 3 "Insn-list: \n")
   (for-each (lambda (insn) 
     (logit 3 "\t" (insn-syntax insn) " " (ifmt-length (insn-ifmt insn)) "\n"))
@@ -333,52 +329,302 @@
     ; the result.
     (let ((decode-code (gen-decoder insn-list initial-bitnums
             decode-bitsize
-            "    " lsb0?
+            "  " lsb0?
             (current-insn-lookup 'x-invalid)
             #f)))
       (string-write
+(-gen-decoder-cpp-includes)
       "\
-class Instruction {
-public:
-  static std::unique_ptr<Instruction> make(unsigned int opcode, uint32_t code) {
-   
-    auto insn = std::make_unique<Instruction>{};
+std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *code) {
+
+  auto *insn = std::make_unique<Instruction>{};
 
 "
-    decode-code
+  decode-code
 "\
     
-    // Demand extracting fields to derived class strategy method
-    insn->parseSfmt(code); 
-    return insn;
-  }
+  // Demand extracting fields to derived class strategy method
+  insn->parseSfmt(code); 
+  return insn;
+}
+"
+      )
+    )
+  )
+)
 
-  virtual voide parseSfmt(uint32_t code) = 0;
+; Subroutine of gen-extract-ifields to fetch one value into VAR-NAME.
+
+(define (-extract-chunk offset bits var-name)
+  (string-append
+    var-name " = "
+    (gen-ir-ifetch "pc" offset bits)
+    ";"
+  )
+)
+
+(define (-gen-ir-ifld-extract-base f total-length base-value)
+  (logit 4 "    Entering gen-ir-ifld-extract-base for " (obj:name f) " ...\n")
+  (let ((extraction
+          (string-append "extract"
+            (if (current-arch-insn-lsb0?) "LSB0" "MSB0")
+            (case (mode:class (ifld-mode f))
+              ((INT) "<int>")
+              ((UINT) "<unsigned int>")
+              (else (error "unsupported mode class"
+                (mode:class (ifld-mode f)))))
+            " ("
+            base-value ", "
+            (number->string total-length) ", "
+            ; ??? Is passing total-length right here?
+            (number->string (+ (ifld-start f total-length)
+              (ifld-word-offset f))) ", "
+            (number->string (ifld-length f))
+              ")"))
+        (decode (ifld-decode f)))
+    ; If the field doesn't have a special decode expression,
+    ; just return the raw extracted value.  Otherwise, emit
+    ; the expression.
+    ; TODO: expression handling not yet implemented
+    (logit 4 "    Exiting gen-ir-ifld-extract-base for " (obj:name f) " ...\n")
+    (if (not decode)
+      extraction
+      ""
+    )
+  )
+)
+
+; Return C++ code to extract <ifield> F.
+
+(define (gen-ir-ifld-extract f indent base-length total-length base-value var-list)
+  (string-append
+    indent "sfmt."
+    (symbol->string (sanitize-elm-name (obj:name f))) " = "
+    (if (adata-integral-insn? CURRENT-ARCH)
+      (-gen-ir-ifld-extract-base f total-length base-value)
+      ; TODO: Implement beyond-base
+    )
+    ";\n"
+  )
+)
+
+; Returns C++ code to extract IFIELDS
+; All insn using the result have the same TOTAL-LENGTH (in bits)
+;
+; Here is where we handle integral-insn vs non-integeral-insn architectures.
+;
+; Examples of architectures that can be handled as integral-insns are:
+; sparc, m32r, mips, etc.
+;
+; Examples of architectures that can't be handled as integral insns are:
+; arc, i960, fr30, i386, m68k.
+; [i386,m68k are only mentioned for completeness.  cgen ports of these
+; would be great, but more thought is needed first]
+
+(define (gen-parse-sfmt-extract-ifields ifields total-length indent)
+  (let* ((base-length (if (adata-integral-insn? CURRENT-ARCH)
+              32
+              (state-base-insn-bitsize)))
+        (chunk-specs (-extract-chunk-specs base-length total-length
+              (current-arch-default-alignment))))
+    (string-list
+      ; If the insn has a trailing part, fetch it.
+      (if (> total-length base-length)
+        (let ()
+          (string-list-map (lambda (chunk-spec chunk-num)
+            (-extract-chunk (car chunk-spec)
+                (cdr chunk-spec)
+                (string-append
+                 "word_"
+                 (number->string chunk-num))
+            ))
+            chunk-specs
+            (iota (length chunk-specs) 1)
+          )
+        )
+        "" ; Else
+      )
+      (string-list-map
+        (lambda (f)
+          (logit 3 "  Extracting field " (obj:name f) " ...\n")
+          ; Dispatching on a method works better, as would a generic fn.
+          (if (multi-ifield? f)
+            ; (gen-multi-ifld-extract
+            ;   f indent base-length total-length "insn"
+            ;   (-gen-extract-beyond-var-list base-length "word_"
+            ;     chunk-specs
+            ;     (current-arch-insn-lsb0?)
+            ;   )
+            ; )
+            ""
+            (gen-ir-ifld-extract
+              f indent base-length total-length "insn"
+              (-gen-extract-beyond-var-list base-length "word_"
+                chunk-specs
+                (current-arch-insn-lsb0?)
+              )
+            )
+          )
+        )
+        ifields
+      )
+    )
+  )
+)
+
+; Returns C++ code to implement the "void parseSfmt()" method
+; of the C++ class representing <insn> INSN
+
+(define (-gen-insn-parse-sfmt insn)
+  (logit 2 "Generating parseSfmt() method for \"" (obj:name insn) "\"\n")
+  (let ((sfmt (insn-sfmt insn)))
+    (string-list
+      (-gen-parse-sfmt-proto (gen-insn-class-name insn)) " {\n"
+      (gen-parse-sfmt-extract-ifields (sfmt-iflds sfmt) (sfmt-length sfmt) "  ")
+      "}\n\n"
+    )
+  )
+)
+
+; For each instruction, implement the strategy method 'parseSfmt()' 
+; for parsing an instruction 
+
+(define (-gen-all-insn-parse-sfmt)
+  (logit 2 "Generating parseSfmt() methods\n")
+  (string-list-map -gen-insn-parse-sfmt 
+    (non-multi-insns (real-insns (current-insn-list)))
+  )
+)
+
+; Generates decoder.cpp
+
+(define (decoder.cpp)
+  (logit 1 "Generating instruction decoder implementation\n")
+
+  (ir-gen-analyze-insns!)
+
+  (string-write
+    (lambda () (-gen-insn-class-make (non-multi-insns (real-insns (current-insn-list)))
+            (state-decode-assist)
+            (current-arch-insn-lsb0?)))
+    (lambda () (-gen-all-insn-parse-sfmt))
+  )
+)
+
+; Returns the C++ code to perform header includes
+
+(define (-gen-decoder-h-includes)
+  (string-append
+    "#include <cstdint>\n"
+    "#include <memory>\n"
+    "\n"
+  )
+)
+
+; TODO: Comment
+
+(define (-gen-base-class-insn) 
+  (logit 2 "Generating Instruction abstract base class ...\n")
+  (string-write
+    "\
+class Instruction {
+public:
+  static std::unique_ptr<Instruction> make(unsigned int opcode, uint8_t *code);
+  virtual " (-gen-parse-sfmt-proto #f) " = 0;\
+
 private:
   Instruction(unsigned int opcode)
     : _opcode{opcode} { }
+
 protected:
   unsigned int _opcode;
 };
 
-/* Derived Instruction classes */
 "
--gen-all-parseSfmt  
-      )
-    )
+  )
+)
+
+; =========== TEMPORARY ===========
+; Returns C++ code declaring a struct to represent <sformat> SFMT.
+; The main purpose is to store the fields of an instruction
+; with such format.
+
+(define (-gen-class-sfmt sfmt)
+  (logit 2 "\tGenerating SFormat class declaration for \"" (obj:name sfmt) "\" ...\n"
+    "\t\t<Key>: \"" (sfmt-key sfmt) "\"\n")
+  (string-list
+    ; Temporary generation of derived instruction class
+    ; declaration / definition
+    "struct " (gen-sfmt-class-name sfmt) " {\n"
+    "" ; Fields
+    (gen-insn-class-ifields (sfmt-iflds sfmt) (sfmt-length sfmt) "  ")
+    "};\n\n"
+  )
+)
+
+; =========== TEMPORARY ===========
+; Generate structs to represent instructions <sformat> sformats
+
+(define (-gen-all-class-sfmts)
+  (logit 2 "Generating SFormat classes declaration\n")
+  (string-list-map -gen-class-sfmt (current-sfmt-list))
+)
+
+; Returns C++ code declaring EmptyInstruction class, as it's not
+; taken into account by -gen-all-class-insns (because it requires
+; real insn and the 'x-invalid' one is not)
+
+(define (-gen-class-empty-insn)
+  (let ((empty (current-insn-lookup 'x-invalid)))
+    ; "class " (gen-insn-class-name empty) " : public Instruction {\n"
+    ; "public:\n"
+    (-gen-class-insn empty)
+  )
+)
+
+; =========== TEMPORARY ===========
+; Returns C++ code declaring and defining a derived Instruction
+; class. The generated class has a *Sfmt memeber to hold instruction fields.
+; It also implements the strategy to decode a word containing the
+; INSN instruction.
+
+(define (-gen-class-insn insn)
+  (logit 2 "Generating instruction implementation for \"" (obj:name insn) "\" ...\n")
+  (string-list
+    ; Temporary generation of derived instruction class
+    ; declaration / definition
+    "class " (gen-insn-class-name insn) " : public Instruction {\n"
+    "public:\n"
+    "  " (-gen-parse-sfmt-proto #f) ";\n"
+    "private:\n"
+    ; Fields
+    "  " (gen-sfmt-class-name (insn-sfmt insn)) " sfmt;\n"
+    "};\n\n"
+  )
+)
+
+; =========== TEMPORARY ===========
+; Entry point of derived Instruction classes generation.
+
+(define (-gen-all-class-insns)
+  (logit 2 "Generating instructions implementations...\n")
+  (string-list
+    (-gen-class-empty-insn) 
+    (string-list-map -gen-class-insn (non-multi-insns (real-insns (current-insn-list))))
   )
 )
 
 ; Generate decoder.h
 
 (define (decoder.h)
-  (logit 1 "Generating instruction decoder\n")
+  (logit 1 "Generating instruction decoder header\n")
 
   (ir-gen-analyze-insns!)
 
   (string-write
-    (lambda () (-gen-decode-fn (non-multi-insns (real-insns (current-insn-list)))
-            (state-decode-assist)
-            (current-arch-insn-lsb0?)))
+    (lambda () (-gen-decoder-h-includes))
+    (lambda () (-gen-all-class-sfmts))
+    (lambda () (-gen-base-class-insn))
+    (lambda () (-gen-all-class-insns))
   )
 )

@@ -1,650 +1,584 @@
-class Instruction {
-public:
-  static std::unique_ptr<Instruction> make(unsigned int opcode, uint32_t code) {
-   
-    auto insn = std::make_unique<Instruction>{};
+#include <cstdint>
+#include <memory>
 
-    switch (opcode) {
-      case 0 :
-        if ((code & 0xfc000000) == 0x0) {
-          insn = std::make_unique<SruiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 1 :
-        if ((code & 0xfc000000) == 0x4000000) {
-          insn = std::make_unique<NoriInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 2 :
-        if ((code & 0xfc000000) == 0x8000000) {
-          insn = std::make_unique<MuliInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 3 :
-        if ((code & 0xfc000000) == 0xc000000) {
-          insn = std::make_unique<ShInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 4 :
-        if ((code & 0xfc000000) == 0x10000000) {
-          insn = std::make_unique<LbInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 5 :
-        if ((code & 0xfc000000) == 0x14000000) {
-          insn = std::make_unique<SriInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 6 :
-        if ((code & 0xfc000000) == 0x18000000) {
-          insn = std::make_unique<XoriInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 7 :
-        if ((code & 0xfc000000) == 0x1c000000) {
-          insn = std::make_unique<LhInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 8 :
-        if ((code & 0xfc000000) == 0x20000000) {
-          insn = std::make_unique<AndiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 9 :
-        if ((code & 0xfc000000) == 0x24000000) {
-          insn = std::make_unique<XnoriInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 10 :
-        if ((code & 0xfc000000) == 0x28000000) {
-          insn = std::make_unique<LwInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 11 :
-        if ((code & 0xfc000000) == 0x2c000000) {
-          insn = std::make_unique<LhuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 12 :
-        if ((code & 0xfc000000) == 0x30000000) {
-          insn = std::make_unique<SbInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 13 :
-        if ((code & 0xfc000000) == 0x34000000) {
-          insn = std::make_unique<AddiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 14 :
-        if ((code & 0xfc000000) == 0x38000000) {
-          insn = std::make_unique<OriInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 15 :
-        if ((code & 0xfc000000) == 0x3c000000) {
-          insn = std::make_unique<SliInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 16 :
-        if ((code & 0xfc000000) == 0x40000000) {
-          insn = std::make_unique<LbuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 17 :
-        if ((code & 0xfc000000) == 0x44000000) {
-          insn = std::make_unique<BeInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 18 :
-        if ((code & 0xfc000000) == 0x48000000) {
-          insn = std::make_unique<BgInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 19 :
-        if ((code & 0xfc000000) == 0x4c000000) {
-          insn = std::make_unique<BgeInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 20 :
-        if ((code & 0xfc000000) == 0x50000000) {
-          insn = std::make_unique<BgeuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 21 :
-        if ((code & 0xfc000000) == 0x54000000) {
-          insn = std::make_unique<BguInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 22 :
-        if ((code & 0xfc000000) == 0x58000000) {
-          insn = std::make_unique<SwInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 23 :
-        if ((code & 0xfc000000) == 0x5c000000) {
-          insn = std::make_unique<BneInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 24 :
-        if ((code & 0xfc000000) == 0x60000000) {
-          insn = std::make_unique<AndhiiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 25 :
-        if ((code & 0xfc000000) == 0x64000000) {
-          insn = std::make_unique<CmpeiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 26 :
-        if ((code & 0xfc000000) == 0x68000000) {
-          insn = std::make_unique<CmpgiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 27 :
-        if ((code & 0xfc000000) == 0x6c000000) {
-          insn = std::make_unique<CmpgeiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 28 :
-        if ((code & 0xfc000000) == 0x70000000) {
-          insn = std::make_unique<CmpgeuiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 29 :
-        if ((code & 0xfc000000) == 0x74000000) {
-          insn = std::make_unique<CmpguiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 30 :
-        if ((code & 0xfc000000) == 0x78000000) {
-          insn = std::make_unique<OrhiiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 31 :
-        if ((code & 0xfc000000) == 0x7c000000) {
-          insn = std::make_unique<CmpneiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 32 :
-        if ((code & 0xfc0007ff) == 0x80000000) {
-          insn = std::make_unique<SruInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 33 :
-        if ((code & 0xfc0007ff) == 0x84000000) {
-          insn = std::make_unique<NorInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 34 :
-        if ((code & 0xfc0007ff) == 0x88000000) {
-          insn = std::make_unique<MulInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 35 :
-        if ((code & 0xfc0007ff) == 0x8c000000) {
-          insn = std::make_unique<DivuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 36 :
-        if ((code & 0xfc1f07ff) == 0x90000000) {
-          insn = std::make_unique<RcsrInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 37 :
-        if ((code & 0xfc0007ff) == 0x94000000) {
-          insn = std::make_unique<SrInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 38 :
-        if ((code & 0xfc0007ff) == 0x98000000) {
-          insn = std::make_unique<XorInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 40 :
-        if ((code & 0xfc0007ff) == 0xa0000000) {
-          insn = std::make_unique<AndInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 41 :
-        if ((code & 0xfc0007ff) == 0xa4000000) {
-          insn = std::make_unique<XnorInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 43 :
-        switch (opcode) {
-          case 0 :
-            if ((code & 0xffffffff) == 0xac000002) {
-              insn = std::make_unique<BreakInstruction>{opcode};
-            } else {
-                  insn = std::make_unique<EmptyInstruction>{opcode};
-            }
-          case 3 :
-            if ((code & 0xffffffff) == 0xac000007) {
-              insn = std::make_unique<ScallInstruction>{opcode};
-            } else {
-                  insn = std::make_unique<EmptyInstruction>{opcode};
-            }
-          default :
-            insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 44 :
-        if ((code & 0xfc1f07ff) == 0xb0000000) {
-          insn = std::make_unique<SextbInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 45 :
-        if ((code & 0xfc0007ff) == 0xb4000000) {
-          insn = std::make_unique<AddInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 46 :
-        if ((code & 0xfc0007ff) == 0xb8000000) {
-          insn = std::make_unique<OrInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 47 :
-        if ((code & 0xfc0007ff) == 0xbc000000) {
-          insn = std::make_unique<SlInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 48 :
-        if ((code & 0xfc1fffff) == 0xc0000000) {
-          insn = std::make_unique<BInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 49 :
-        if ((code & 0xfc0007ff) == 0xc4000000) {
-          insn = std::make_unique<ModuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 50 :
-        if ((code & 0xfc0007ff) == 0xc8000000) {
-          insn = std::make_unique<SubInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 51 :
-        if ((code & 0xfc000000) == 0xcc000000) {
-          insn = std::make_unique<UserInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 52 :
-        if ((code & 0xfc00ffff) == 0xd0000000) {
-          insn = std::make_unique<WcsrInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 54 :
-        if ((code & 0xfc1fffff) == 0xd8000000) {
-          insn = std::make_unique<CallInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 55 :
-        if ((code & 0xfc1f07ff) == 0xdc000000) {
-          insn = std::make_unique<SexthInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 56 :
-        if ((code & 0xfc000000) == 0xe0000000) {
-          insn = std::make_unique<BiInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 57 :
-        if ((code & 0xfc0007ff) == 0xe4000000) {
-          insn = std::make_unique<CmpeInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 58 :
-        if ((code & 0xfc0007ff) == 0xe8000000) {
-          insn = std::make_unique<CmpgInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 59 :
-        if ((code & 0xfc0007ff) == 0xec000000) {
-          insn = std::make_unique<CmpgeInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 60 :
-        if ((code & 0xfc0007ff) == 0xf0000000) {
-          insn = std::make_unique<CmpgeuInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 61 :
-        if ((code & 0xfc0007ff) == 0xf4000000) {
-          insn = std::make_unique<CmpguInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 62 :
-        if ((code & 0xfc000000) == 0xf8000000) {
-          insn = std::make_unique<CalliInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      case 63 :
-        if ((code & 0xfc0007ff) == 0xfc000000) {
-          insn = std::make_unique<CmpneInstruction>{opcode};
-        } else {
-          insn = std::make_unique<EmptyInstruction>{opcode};
-        }
-      default :
-        insn = std::make_unique<EmptyInstruction>{opcode};
-    }
-    
-    // Demand extracting fields to derived class strategy method
-    insn->parseSfmt(code); 
-    return insn;
-  }
-
-  virtual voide parseSfmt(uint32_t code) = 0;
-private:
-  Instruction(unsigned int opcode)
-    : _opcode{opcode} { }
-protected:
-  unsigned int _opcode;
+struct EmptySFormat {
 };
 
-/* Derived Instruction classes */
-class EmptyInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
-
-};
-
-class AddInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct AddSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_r2;
-
 };
 
-class AddiInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct AddiSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class AndiInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct AndiSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_uimm;
-
 };
 
-class AndhiiInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct AndhiiSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_uimm;
-
 };
 
-class BInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct BSFormat {
   unsigned int f_r0;
-
 };
 
-class BiInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct BiSFormat {
   int f_call;
-
 };
 
-class BeInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct BeSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_branch;
-
 };
 
-class CallInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct CallSFormat {
   unsigned int f_r0;
-
 };
 
-class CalliInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct CalliSFormat {
   int f_call;
-
 };
 
-class DivuInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct DivuSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_r2;
-
 };
 
-class LbInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct LbSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class LhInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct LhSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class LwInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct LwSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class OriInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct OriSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_uimm;
-
 };
 
-class RcsrInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct RcsrSFormat {
   unsigned int f_csr;
   unsigned int f_r2;
-
 };
 
-class SbInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct SbSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class SextbInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct SextbSFormat {
   unsigned int f_r0;
   unsigned int f_r2;
-
 };
 
-class ShInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct ShSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class SlInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct SlSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_r2;
-
 };
 
-class SwInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct SwSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   int f_imm;
-
 };
 
-class UserInstruction : public Instruction {
-public:
-  void parseSfmt(uint32_t code) {
-  }
-private:
+struct UserSFormat {
   unsigned int f_r0;
   unsigned int f_r1;
   unsigned int f_r2;
   unsigned int f_user;
+};
 
+struct WcsrSFormat {
+  unsigned int f_csr;
+  unsigned int f_r1;
+};
+
+struct BreakSFormat {
+};
+
+class Instruction {
+public:
+  static std::unique_ptr<Instruction> make(unsigned int opcode, uint8_t *code);
+  virtual void parseSfmt(uint8_t *code) = 0;
+private:
+  Instruction(unsigned int opcode)
+    : _opcode{opcode} { }
+
+protected:
+  unsigned int _opcode;
+};
+
+class EmptyInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  EmptySFormat sfmt;
+};
+
+class AddInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class AddiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class AndInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class AndiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
+};
+
+class AndhiiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndhiiSFormat sfmt;
+};
+
+class BInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BSFormat sfmt;
+};
+
+class BiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BiSFormat sfmt;
+};
+
+class BeInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class BgInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class BgeInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class BgeuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class BguInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class BneInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BeSFormat sfmt;
+};
+
+class CallInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  CallSFormat sfmt;
+};
+
+class CalliInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  CalliSFormat sfmt;
+};
+
+class CmpeInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpeiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class CmpgInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpgiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class CmpgeInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpgeiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class CmpgeuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpgeuiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
+};
+
+class CmpguInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpguiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
+};
+
+class CmpneInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class CmpneiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class DivuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  DivuSFormat sfmt;
+};
+
+class LbInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  LbSFormat sfmt;
+};
+
+class LbuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  LbSFormat sfmt;
+};
+
+class LhInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  LhSFormat sfmt;
+};
+
+class LhuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  LhSFormat sfmt;
+};
+
+class LwInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  LwSFormat sfmt;
+};
+
+class ModuInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  DivuSFormat sfmt;
+};
+
+class MulInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class MuliInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class NorInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class NoriInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
+};
+
+class OrInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class OriInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  OriSFormat sfmt;
+};
+
+class OrhiiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndhiiSFormat sfmt;
+};
+
+class RcsrInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  RcsrSFormat sfmt;
+};
+
+class SbInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SbSFormat sfmt;
+};
+
+class SextbInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SextbSFormat sfmt;
+};
+
+class SexthInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SextbSFormat sfmt;
+};
+
+class ShInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  ShSFormat sfmt;
+};
+
+class SlInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SlSFormat sfmt;
+};
+
+class SliInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class SrInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SlSFormat sfmt;
+};
+
+class SriInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class SruInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SlSFormat sfmt;
+};
+
+class SruiInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddiSFormat sfmt;
+};
+
+class SubInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class SwInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  SwSFormat sfmt;
+};
+
+class UserInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  UserSFormat sfmt;
 };
 
 class WcsrInstruction : public Instruction {
 public:
-  void parseSfmt(uint32_t code) {
-  }
+  void parseSfmt(uint8_t *code);
 private:
-  unsigned int f_csr;
-  unsigned int f_r1;
+  WcsrSFormat sfmt;
+};
 
+class XorInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class XoriInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
+};
+
+class XnorInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AddSFormat sfmt;
+};
+
+class XnoriInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  AndiSFormat sfmt;
 };
 
 class BreakInstruction : public Instruction {
 public:
-  void parseSfmt(uint32_t code) {
-  }
+  void parseSfmt(uint8_t *code);
 private:
+  BreakSFormat sfmt;
+};
 
+class ScallInstruction : public Instruction {
+public:
+  void parseSfmt(uint8_t *code);
+private:
+  BreakSFormat sfmt;
 };
 

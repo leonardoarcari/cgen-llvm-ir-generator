@@ -24,7 +24,7 @@
       )
       str
     )
-    (string->symbol str)
+    str
   )
 )
 
@@ -100,6 +100,21 @@
     )
     ">(" pc-var " + " (number->string (quotient bitoffset 8))
     ")"
+  )
+)
+
+(define (gen-sem-mode-cpp-type mode)
+  (cond
+    ((mode:eq? mode (mode:lookup 'VOID)) "void")
+    ((mode:eq? mode (mode:lookup 'BI)) "unsigned char")
+    ((mode:eq? mode (mode:lookup 'QI)) "int8_t")
+    ((mode:eq? mode (mode:lookup 'HI)) "int16_t")
+    ((mode:eq? mode (mode:lookup 'SI)) "int32_t")
+    ((mode:eq? mode (mode:lookup 'UQI)) "uint8_t")
+    ((mode:eq? mode (mode:lookup 'UHI)) "uint16_t")
+    ((mode:eq? mode (mode:lookup 'USI)) "uint32_t")
+    ((mode:eq? mode (mode:lookup 'DI)) "int64_t")
+    ((mode:eq? mode (mode:lookup 'UDI)) "uint64_t")
   )
 )
 

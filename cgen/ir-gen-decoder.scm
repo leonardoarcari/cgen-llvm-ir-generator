@@ -399,7 +399,7 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
 (define (gen-ir-ifld-extract f indent base-length total-length base-value var-list)
   (string-append
     indent "sfmt."
-    (symbol->string (sanitize-elm-name (obj:name f))) " = "
+    (sanitize-elm-name (obj:name f)) " = "
     (if (adata-integral-insn? CURRENT-ARCH)
       (-gen-ir-ifld-extract-base f total-length base-value)
       ; TODO: Implement beyond-base

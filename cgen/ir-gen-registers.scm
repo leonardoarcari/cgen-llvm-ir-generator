@@ -182,7 +182,7 @@
 					(if (not (hw-scalar? hw)) ; Test if single or array
 						(-gen-array-vars hw) ; Array of registers
 						(-gen-new-global hw 
-              (sanitize-elm-name (hw-sem-name hw))) ; Single register declaration
+              (string->symbol (sanitize-elm-name (hw-sem-name hw)))) ; Single register declaration
           ) 
 				)
 			)

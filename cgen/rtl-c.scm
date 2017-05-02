@@ -46,22 +46,22 @@
 
 (define <c-expr>
   (class-make '<c-expr> nil
-	      '(
-		; The mode of C-CODE.
-		mode
-		; The translated C code.
-		c-code
-		; The source expression, for debugging.
-		expr
-		; Attributes of the expression.
-		atlist
-		; List of temporaries required to compute the expression.
-		; ??? wip.  These would be combined as the expression is
-		; built up.  Then in sets and other statements, the temporaries
-		; would be declared.
-		;(tmps . nil)
-		)
-	      nil)
+        '(
+    ; The mode of C-CODE.
+    mode
+    ; The translated C code.
+    c-code
+    ; The source expression, for debugging.
+    expr
+    ; Attributes of the expression.
+    atlist
+    ; List of temporaries required to compute the expression.
+    ; ??? wip.  These would be combined as the expression is
+    ; built up.  Then in sets and other statements, the temporaries
+    ; would be declared.
+    ;(tmps . nil)
+    )
+        nil)
 )
 
 (method-make!
@@ -99,20 +99,20 @@
  <c-expr> 'get-name
  (lambda (self)
    (string-append "(" (obj:str-name (elm-get self 'mode)) ") "
-		  (cx:c self)))
+      (cx:c self)))
 )
 
 ; Return C code to perform an assignment.
 ; NEWVAL is a <c-expr> object of the value to be assigned to SELF.
 
 (method-make! <c-expr> 'gen-set-quiet
-	      (lambda (self estate mode indx selector newval)
-		(string-append "  " (cx:c self) " = " (cx:c newval) ";\n"))
+        (lambda (self estate mode indx selector newval)
+    (string-append "  " (cx:c self) " = " (cx:c newval) ";\n"))
 )
 
 (method-make! <c-expr> 'gen-set-trace
-	      (lambda (self estate mode indx selector newval)
-		(string-append "  " (cx:c self) " = " (cx:c newval) ";\n"))
+        (lambda (self estate mode indx selector newval)
+    (string-append "  " (cx:c self) " = " (cx:c newval) ";\n"))
 )
 
 ; Return the C code of CX.
@@ -170,10 +170,10 @@
 
 (define (gen-temp-defs estate env)
   (string-map (lambda (temp)
-		(let ((temp-obj (cdr temp)))
-		  (string-append "  " (mode:c-type (rtx-temp-mode temp-obj))
-				 " " (rtx-temp-value temp-obj) ";\n")))
-	      env)
+    (let ((temp-obj (cdr temp)))
+      (string-append "  " (mode:c-type (rtx-temp-mode temp-obj))
+         " " (rtx-temp-value temp-obj) ";\n")))
+        env)
 )
 
 ; Top level routines to handle rtl->c translation.
@@ -191,13 +191,13 @@
   (set! -rtl-c-rtl-cover-fns? #f)
   (let loop ((args args))
     (if (null? args)
-	#f ; done
-	(begin
-	  (case (car args)
-	    ((#:rtl-cover-fns?)
-	     (set! -rtl-c-rtl-cover-fns? (cadr args)))
-	    (else (error "rtl-c-config: unknown option:" (car args))))
-	  (loop (cddr args)))))
+  #f ; done
+  (begin
+    (case (car args)
+      ((#:rtl-cover-fns?)
+       (set! -rtl-c-rtl-cover-fns? (cadr args)))
+      (else (error "rtl-c-config: unknown option:" (car args))))
+    (loop (cddr args)))))
   *UNSPECIFIED*
 )
 
@@ -205,28 +205,28 @@
 
 (define <rtl-c-eval-state>
   (class-make '<rtl-c-eval-state> '(<eval-state>)
-	      '(
-		; #t -> emit calls to rtl cover fns.
-		(rtl-cover-fns? . #f)
+        '(
+    ; #t -> emit calls to rtl cover fns.
+    (rtl-cover-fns? . #f)
 
-		; name of output language, "c" or "c++"
-		(output-language . "c")
+    ; name of output language, "c" or "c++"
+    (output-language . "c")
 
-		; #t if generating code for a macro.
-		; Each newline is then preceeded with '\\'.
-		(macro? . #f)
+    ; #t if generating code for a macro.
+    ; Each newline is then preceeded with '\\'.
+    (macro? . #f)
 
-		; #f -> reference ifield values using FLD macro.
-		; #t -> use C variables.
-		; ??? This is only needed to get correct ifield references
-		; in opcodes, decoder, and semantics.  Maybe a better way to
-		; go would be to specify the caller's name so there'd be just
-		; one of these, rather than an increasing number.  However,
-		; for now either way is the same.
-		; An alternative is to specify a callback to try first.
-		(ifield-var? . #f)
-		)
-	      nil)
+    ; #f -> reference ifield values using FLD macro.
+    ; #t -> use C variables.
+    ; ??? This is only needed to get correct ifield references
+    ; in opcodes, decoder, and semantics.  Maybe a better way to
+    ; go would be to specify the caller's name so there'd be just
+    ; one of these, rather than an increasing number.  However,
+    ; for now either way is the same.
+    ; An alternative is to specify a callback to try first.
+    (ifield-var? . #f)
+    )
+        nil)
 )
 
 ; FIXME: involves upcasting.
@@ -249,22 +249,22 @@
    ; Initialize parent class first.
    (let loop ((args (send-next self 'vmake! args)) (unrecognized nil))
      (if (null? args)
-	 (reverse! unrecognized) ; ??? Could invoke method to initialize here.
-	 (begin
-	   (case (car args)
-	     ((#:rtl-cover-fns?)
-	      (elm-set! self 'rtl-cover-fns? (cadr args)))
-	     ((#:output-language)
-	      (elm-set! self 'output-language (cadr args)))
-	     ((#:macro?)
-	      (elm-set! self 'macro? (cadr args)))
-	     ((#:ifield-var?)
-	      (elm-set! self 'ifield-var? (cadr args)))
-	     (else
-	      ; Build in reverse order, as we reverse it back when we're done.
-	      (set! unrecognized
-		    (cons (cadr args) (cons (car args) unrecognized)))))
-	   (loop (cddr args) unrecognized)))))
+   (reverse! unrecognized) ; ??? Could invoke method to initialize here.
+   (begin
+     (case (car args)
+       ((#:rtl-cover-fns?)
+        (elm-set! self 'rtl-cover-fns? (cadr args)))
+       ((#:output-language)
+        (elm-set! self 'output-language (cadr args)))
+       ((#:macro?)
+        (elm-set! self 'macro? (cadr args)))
+       ((#:ifield-var?)
+        (elm-set! self 'ifield-var? (cadr args)))
+       (else
+        ; Build in reverse order, as we reverse it back when we're done.
+        (set! unrecognized
+        (cons (cadr args) (cons (car args) unrecognized)))))
+     (loop (cddr args) unrecognized)))))
 )
 
 ; Build an estate for use in generating C.
@@ -275,19 +275,19 @@
 ; OVERRIDES is a #:keyword/value list of parameters to apply last.
 
 (define (estate-make-for-rtl-c context owner extra-vars-alist
-			       rtl-cover-fns? macro? overrides)
+             rtl-cover-fns? macro? overrides)
   (apply vmake
-	 (append!
-	  (list
-	   <rtl-c-eval-state>
-	   #:context context
-	   #:owner owner
-	   #:expr-fn (lambda (rtx-obj expr mode estate)
-		       (rtl-c-generator rtx-obj))
-	   #:env (rtx-env-init-stack1 extra-vars-alist)
-	   #:rtl-cover-fns? rtl-cover-fns?
-	   #:macro? macro?)
-	   overrides))
+   (append!
+    (list
+     <rtl-c-eval-state>
+     #:context context
+     #:owner owner
+     #:expr-fn (lambda (rtx-obj expr mode estate)
+           (rtl-c-generator rtx-obj))
+     #:env (rtx-env-init-stack1 extra-vars-alist)
+     #:rtl-cover-fns? rtl-cover-fns?
+     #:macro? macro?)
+     overrides))
 )
 
 (define (estate-make-for-normal-rtl-c extra-vars-alist overrides)
@@ -415,80 +415,80 @@
   (let ((mode (mode:lookup mode)))
 
     (cond ((c-expr? src)
-	   (cond ((or (mode:eq? 'VOID mode)
-		      (mode:eq? 'DFLT mode)
-		      (mode:eq? (cx:mode src) mode))
-		  src)
-		 ((-rtx-mode-compatible? mode (cx:mode src))
-		  (cx-new-mode mode src))
-		 (else
-		  (error (string-append "incompatible mode for "
-					"(" (obj:name (cx:mode src)) " vs " (obj:name mode) ") in "
-					"\"" (cx:c src) "\""
-					": ")
-			 (obj:name mode)))))
+     (cond ((or (mode:eq? 'VOID mode)
+          (mode:eq? 'DFLT mode)
+          (mode:eq? (cx:mode src) mode))
+      src)
+     ((-rtx-mode-compatible? mode (cx:mode src))
+      (cx-new-mode mode src))
+     (else
+      (error (string-append "incompatible mode for "
+          "(" (obj:name (cx:mode src)) " vs " (obj:name mode) ") in "
+          "\"" (cx:c src) "\""
+          ": ")
+       (obj:name mode)))))
 
-	  ; The recursive call to -rtl-c-get is in case the result of rtx-eval
-	  ; is a hardware object, rtx-func object, or another rtl expression.
-	  ((rtx? src)
-	   (let ((evald-src (rtx-eval-with-estate src mode estate)))
-	     ; There must have been some change, otherwise we'll loop forever.
-	     (assert (not (eq? src evald-src)))
-	     (-rtl-c-get estate mode evald-src)))
+    ; The recursive call to -rtl-c-get is in case the result of rtx-eval
+    ; is a hardware object, rtx-func object, or another rtl expression.
+    ((rtx? src)
+     (let ((evald-src (rtx-eval-with-estate src mode estate)))
+       ; There must have been some change, otherwise we'll loop forever.
+       (assert (not (eq? src evald-src)))
+       (-rtl-c-get estate mode evald-src)))
 
-	  ((or (and (symbol? src) (current-op-lookup src))
-	       (operand? src))
-	   (begin
-	     (if (symbol? src)
-		 (set! src (current-op-lookup src)))
-	     (cond ((mode:eq? 'DFLT mode)
-		    ; FIXME: If we fetch the mode here, operands can assume
-		    ; they never get called with "default mode".
-		    (send src 'cxmake-get estate mode #f #f))
-		   ((-rtx-mode-compatible? mode (op:mode src))
-		    (let ((mode (-rtx-lazy-sem-mode mode)))
-		      (send src 'cxmake-get estate mode #f #f)))
-		   (else
-		    (error (string-append "operand " (obj:str-name src)
-					  " referenced in incompatible mode: ")
-			   (obj:name mode))))))
+    ((or (and (symbol? src) (current-op-lookup src))
+         (operand? src))
+     (begin
+       (if (symbol? src)
+     (set! src (current-op-lookup src)))
+       (cond ((mode:eq? 'DFLT mode)
+        ; FIXME: If we fetch the mode here, operands can assume
+        ; they never get called with "default mode".
+        (send src 'cxmake-get estate mode #f #f))
+       ((-rtx-mode-compatible? mode (op:mode src))
+        (let ((mode (-rtx-lazy-sem-mode mode)))
+          (send src 'cxmake-get estate mode #f #f)))
+       (else
+        (error (string-append "operand " (obj:str-name src)
+            " referenced in incompatible mode: ")
+         (obj:name mode))))))
 
-	  ((or (and (symbol? src) (rtx-temp-lookup (estate-env estate) src))
-	       (rtx-temp? src))
-	   (begin
-	     (if (symbol? src)
-		 (set! src (rtx-temp-lookup (estate-env estate) src)))
-	     (cond ((mode:eq? 'DFLT mode)
-		    (send src 'cxmake-get estate (rtx-temp-mode src) #f #f))
-		   ((-rtx-mode-compatible? mode (rtx-temp-mode src))
-		    (let ((mode (-rtx-lazy-sem-mode mode)))
-		      (send src 'cxmake-get estate mode #f #f)))
-		   (else (error (string-append "sequence temp " (rtx-temp-name src)
-					       " referenced in incompatible mode: ")
-				(obj:name mode))))))
+    ((or (and (symbol? src) (rtx-temp-lookup (estate-env estate) src))
+         (rtx-temp? src))
+     (begin
+       (if (symbol? src)
+     (set! src (rtx-temp-lookup (estate-env estate) src)))
+       (cond ((mode:eq? 'DFLT mode)
+        (send src 'cxmake-get estate (rtx-temp-mode src) #f #f))
+       ((-rtx-mode-compatible? mode (rtx-temp-mode src))
+        (let ((mode (-rtx-lazy-sem-mode mode)))
+          (send src 'cxmake-get estate mode #f #f)))
+       (else (error (string-append "sequence temp " (rtx-temp-name src)
+                 " referenced in incompatible mode: ")
+        (obj:name mode))))))
 
-	  ((integer? src)
-	   ; Default mode of string argument is INT.
-	   (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
-	       (cx:make INT (number->string src))
-	       (cx:make mode (number->string src))))
+    ((integer? src)
+     ; Default mode of string argument is INT.
+     (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
+         (cx:make INT (number->string src))
+         (cx:make mode (number->string src))))
 
-	  ((string? src)
-	   ; Default mode of string argument is INT.
-	   (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
-	       (cx:make INT src)
-	       (cx:make mode src)))
+    ((string? src)
+     ; Default mode of string argument is INT.
+     (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
+         (cx:make INT src)
+         (cx:make mode src)))
 
-	  (else (error "-rtl-c-get: invalid argument:" src))))
+    (else (error "-rtl-c-get: invalid argument:" src))))
 )
 
 (define (rtl-c-get estate mode src)
   (logit 4 (spaces (estate-depth estate))
-	 "(rtl-c-get " (mode-real-name mode) " " (rtx-strdump src) ")\n")
+   "(rtl-c-get " (mode-real-name mode) " " (rtx-strdump src) ")\n")
   (let ((result (-rtl-c-get estate mode src)))
     (logit 4 (spaces (estate-depth estate))
-	   "(rtl-c-get " (mode-real-name mode) " " (rtx-strdump src) ") => "
-	   (cx:c result) "\n")
+     "(rtl-c-get " (mode-real-name mode) " " (rtx-strdump src) ") => "
+     (cx:c result) "\n")
     result)
 )
 
@@ -503,20 +503,20 @@
 (define (rtl-c-set-quiet estate mode dest src)
   ;(display (list 'rtl-c-set-quiet mode dest src)) (newline)
   (let ((xdest (cond ((c-expr? dest)
-		      dest)
-		     ((rtx? dest)
-		      (rtx-eval-with-estate dest mode estate))
-		     (else
-		      (error "rtl-c-set-quiet: invalid dest:" dest)))))
+          dest)
+         ((rtx? dest)
+          (rtx-eval-with-estate dest mode estate))
+         (else
+          (error "rtl-c-set-quiet: invalid dest:" dest)))))
     (if (not (object? xdest))
-	(error "rtl-c-set-quiet: invalid dest:" dest))
+  (error "rtl-c-set-quiet: invalid dest:" dest))
     (let ((mode (if (mode:eq? 'DFLT mode)
-		    (-rtx-obj-mode xdest)
-		    (-rtx-lazy-sem-mode mode))))
+        (-rtx-obj-mode xdest)
+        (-rtx-lazy-sem-mode mode))))
       (assert (mode? mode))
       (cx:make VOID (send xdest 'gen-set-quiet
-			estate mode #f #f
-			(rtl-c-get estate mode src)))))
+      estate mode #f #f
+      (rtl-c-get estate mode src)))))
 )
 
 ; Same as rtl-c-set-quiet except also print TRACE_RESULT message.
@@ -528,20 +528,20 @@
 (define (rtl-c-set-trace estate mode dest src)
   ;(display (list 'rtl-c-set-trace mode dest src)) (newline)
   (let ((xdest (cond ((c-expr? dest)
-		      dest)
-		     ((rtx? dest)
-		      (rtx-eval-with-estate dest mode estate))
-		     (else
-		      (error "rtl-c-set-trace: invalid dest:" dest)))))
+          dest)
+         ((rtx? dest)
+          (rtx-eval-with-estate dest mode estate))
+         (else
+          (error "rtl-c-set-trace: invalid dest:" dest)))))
     (if (not (object? xdest))
-	(error "rtl-c-set-trace: invalid dest:" dest))
+  (error "rtl-c-set-trace: invalid dest:" dest))
     (let ((mode (if (mode:eq? 'DFLT mode)
-		    (-rtx-obj-mode xdest) ; FIXME: internal routines
-		    (-rtx-lazy-sem-mode mode))))
+        (-rtx-obj-mode xdest) ; FIXME: internal routines
+        (-rtx-lazy-sem-mode mode))))
       (assert (mode? mode))
       (cx:make VOID (send xdest 'gen-set-trace
-			estate mode #f #f
-			(rtl-c-get estate mode src)))))
+      estate mode #f #f
+      (rtl-c-get estate mode src)))))
 )
 
 ; Emit C code for each rtx function.
@@ -563,31 +563,31 @@
 
 (define (s-c-call estate mode name . args)
   (cx:make mode
-	   (string-append
-	    (if (estate-output-language-c++? estate)
-		(string-append "current_cpu->" name " (")
-		; FIXME: Prepend @cpu@_ to name here, and delete @cpu@_ from
-		; description file.
-		(string-append name " (current_cpu"))
-	    (let ((c-args
-		   (string-map (lambda (arg)
-				 (string-append
-				  ", "
-				  (cx:c (rtl-c-get estate DFLT arg))))
-			       args)))
-	      (if (estate-output-language-c++? estate)
-		  (string-drop 2 c-args)
-		  c-args))
-	    ; If the mode is VOID, this is a statement.
-	    ; Otherwise it's an expression.
-	    ; ??? Bad assumption!  VOID expressions may be used
-	    ; within sequences without local vars, which are translated
-	    ; to comma-expressions.
-	    (if (or (mode:eq? 'DFLT mode)
-		    (mode:eq? 'VOID mode))
-		");\n"
-		")")
-	    ))
+     (string-append
+      (if (estate-output-language-c++? estate)
+    (string-append "current_cpu->" name " (")
+    ; FIXME: Prepend @cpu@_ to name here, and delete @cpu@_ from
+    ; description file.
+    (string-append name " (current_cpu"))
+      (let ((c-args
+       (string-map (lambda (arg)
+         (string-append
+          ", "
+          (cx:c (rtl-c-get estate DFLT arg))))
+             args)))
+        (if (estate-output-language-c++? estate)
+      (string-drop 2 c-args)
+      c-args))
+      ; If the mode is VOID, this is a statement.
+      ; Otherwise it's an expression.
+      ; ??? Bad assumption!  VOID expressions may be used
+      ; within sequences without local vars, which are translated
+      ; to comma-expressions.
+      (if (or (mode:eq? 'DFLT mode)
+        (mode:eq? 'VOID mode))
+    ");\n"
+    ")")
+      ))
 )
 
 ; Same as c-call except there is no particular owner of the call.
@@ -596,23 +596,23 @@
 
 (define (s-c-raw-call estate mode name . args)
   (cx:make mode
-	   (string-append
-	    name " ("
-	    (string-drop 2
-			 (string-map (lambda (elm)
-				       (string-append
-					", " (cx:c (rtl-c-get estate DFLT elm))))
-				     args))
-	    ; If the mode is VOID, this is a statement.
-	    ; Otherwise it's an expression.
-	    ; ??? Bad assumption!  VOID expressions may be used
-	    ; within sequences without local vars, which are translated
-	    ; to comma-expressions.
-	    (if (or (mode:eq? 'DFLT mode)
-		    (mode:eq? 'VOID mode))
-		");\n"
-		")")
-	    ))
+     (string-append
+      name " ("
+      (string-drop 2
+       (string-map (lambda (elm)
+               (string-append
+          ", " (cx:c (rtl-c-get estate DFLT elm))))
+             args))
+      ; If the mode is VOID, this is a statement.
+      ; Otherwise it's an expression.
+      ; ??? Bad assumption!  VOID expressions may be used
+      ; within sequences without local vars, which are translated
+      ; to comma-expressions.
+      (if (or (mode:eq? 'DFLT mode)
+        (mode:eq? 'VOID mode))
+    ");\n"
+    ")")
+      ))
 )
 
 ; Standard arithmetic operations.
@@ -627,39 +627,39 @@
   ; if this is the simulator and MODE is not a host mode, use a macro.
 ;  (or (not c-op)
 ;      (and (estate-rtl-cover-fns? estate)
-;	   (not (mode:host? mode))))
+;    (not (mode:host? mode))))
   ; FIXME: The current definition is a temporary hack while host/target-ness
   ; of INT/UINT is unresolved.
   (and (not (obj-has-attr? mode 'FORCE-C))
        (or (not c-op)
-	   (and (estate-rtl-cover-fns? estate)
-		(or (insn? (estate-owner estate))
-		    (not (mode:host? mode))))))
+     (and (estate-rtl-cover-fns? estate)
+    (or (insn? (estate-owner estate))
+        (not (mode:host? mode))))))
 )
 
 ; One operand referenced, result is in same mode.
 
 (define (s-unop estate name c-op mode src)
   (let* ((val (rtl-c-get estate mode src))
-	 ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-	 (mode (cx:mode val))
-	 (sem-mode (-rtx-sem-mode mode)))
+   ; Refetch mode in case it was DFLT and ensure unsigned->signed.
+   (mode (cx:mode val))
+   (sem-mode (-rtx-sem-mode mode)))
     ; FIXME: Argument checking.
 
     (if (-rtx-use-sem-fn? estate c-op mode)
-	(if (mode-float? mode)
-	    (cx:make sem-mode
-		     (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
-				    (string-downcase name)
-				    (string-downcase (obj:str-name sem-mode))
-				    " (CGEN_CPU_FPU (current_cpu), "
-				    (cx:c val) ")"))
-	    (cx:make sem-mode
-		     (string-append name (obj:str-name sem-mode)
-				    " (" (cx:c val) ")")))
-	(cx:make mode ; not sem-mode on purpose
-		 (string-append "(" c-op " ("
-				(cx:c val) "))"))))
+  (if (mode-float? mode)
+      (cx:make sem-mode
+         (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
+            (string-downcase name)
+            (string-downcase (obj:str-name sem-mode))
+            " (CGEN_CPU_FPU (current_cpu), "
+            (cx:c val) ")"))
+      (cx:make sem-mode
+         (string-append name (obj:str-name sem-mode)
+            " (" (cx:c val) ")")))
+  (cx:make mode ; not sem-mode on purpose
+     (string-append "(" c-op " ("
+        (cx:c val) "))"))))
 )
 
 ; Two operands referenced in the same mode producing a result in the same mode.
@@ -675,49 +675,49 @@
 
 (define (s-binop estate name c-op mode src1 src2)
   (let* ((val1 (rtl-c-get estate mode src1))
-	 ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-	 (mode (cx:mode val1))
-	 (sem-mode (-rtx-sem-mode mode))
-	 (val2 (rtl-c-get estate mode src2)))
+   ; Refetch mode in case it was DFLT and ensure unsigned->signed.
+   (mode (cx:mode val1))
+   (sem-mode (-rtx-sem-mode mode))
+   (val2 (rtl-c-get estate mode src2)))
     ; FIXME: Argument checking.
 
     (if (-rtx-use-sem-fn? estate c-op mode)
-	(if (mode-float? mode)
-	    (cx:make sem-mode
-		     (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
-				    (string-downcase name)
-				    (string-downcase (obj:str-name sem-mode))
-				    " (CGEN_CPU_FPU (current_cpu), "
-				    (cx:c val1) ", "
-				    (cx:c val2) ")"))
-	    (cx:make sem-mode
-		     (string-append name (obj:str-name sem-mode)
-				    " (" (cx:c val1) ", "
-				    (cx:c val2) ")")))
-	(cx:make mode ; not sem-mode on purpose
-		 (string-append "(("
-				(cx:c val1)
-				") " c-op " ("
-				(cx:c val2)
-				"))"))))
+  (if (mode-float? mode)
+      (cx:make sem-mode
+         (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
+            (string-downcase name)
+            (string-downcase (obj:str-name sem-mode))
+            " (CGEN_CPU_FPU (current_cpu), "
+            (cx:c val1) ", "
+            (cx:c val2) ")"))
+      (cx:make sem-mode
+         (string-append name (obj:str-name sem-mode)
+            " (" (cx:c val1) ", "
+            (cx:c val2) ")")))
+  (cx:make mode ; not sem-mode on purpose
+     (string-append "(("
+        (cx:c val1)
+        ") " c-op " ("
+        (cx:c val2)
+        "))"))))
 )
 
 ; Same as s-binop except there's a third argument which is always one bit.
 
 (define (s-binop-with-bit estate name mode src1 src2 src3)
   (let* ((val1 (rtl-c-get estate mode src1))
-	 ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-	 (mode (-rtx-sem-mode (cx:mode val1)))
-	 (val2 (rtl-c-get estate mode src2))
-	 (val3 (rtl-c-get estate 'BI src3)))
+   ; Refetch mode in case it was DFLT and ensure unsigned->signed.
+   (mode (-rtx-sem-mode (cx:mode val1)))
+   (val2 (rtl-c-get estate mode src2))
+   (val3 (rtl-c-get estate 'BI src3)))
     ; FIXME: Argument checking.
     (cx:make mode
-	  (string-append name (obj:str-name mode)
-			 " ("
-			 (cx:c val1) ", "
-			 (cx:c val2) ", "
-			 (cx:c val3)
-			 ")")))
+    (string-append name (obj:str-name mode)
+       " ("
+       (cx:c val1) ", "
+       (cx:c val2) ", "
+       (cx:c val3)
+       ")")))
 )
 
 ; Shift operations are slightly different than binary operations:
@@ -727,36 +727,36 @@
 
 (define (s-shop estate name c-op mode src1 src2)
   (let* ((val1 (rtl-c-get estate mode src1))
-	 ; Refetch mode in case it was DFLT and ensure unsigned->signed
-	 ; [sign of operation is determined from operation name, not mode].
-	 (mode (cx:mode val1))
-	 (sem-mode (-rtx-sem-mode mode))
-	 (val2 (rtl-c-get estate mode src2)))
+   ; Refetch mode in case it was DFLT and ensure unsigned->signed
+   ; [sign of operation is determined from operation name, not mode].
+   (mode (cx:mode val1))
+   (sem-mode (-rtx-sem-mode mode))
+   (val2 (rtl-c-get estate mode src2)))
     ; FIXME: Argument checking.
 
     (if (-rtx-use-sem-fn? estate c-op mode)
-	(cx:make sem-mode
-		 (string-append name (obj:str-name sem-mode)
-				" (" (cx:c val1) ", "
-				(cx:c val2) ")"))
-	(cx:make mode ; not sem-mode on purpose
-		 (string-append "("
-				; Ensure correct sign of shift.
-				(cond ((equal? name "SRL")
-				       (string-append "("
-						      (if (eq? (mode:class mode) 'UINT)
-							  ""
-							  "unsigned ")
-						      (mode:non-mode-c-type mode)
-						      ") "))
-				      ((equal? name "SRA")
-				       (string-append "("
-						      (mode:non-mode-c-type mode)
-						      ") "))
-				      (else ""))
-				"(" (cx:c val1) ") "
-				c-op
-				" (" (cx:c val2) "))"))))
+  (cx:make sem-mode
+     (string-append name (obj:str-name sem-mode)
+        " (" (cx:c val1) ", "
+        (cx:c val2) ")"))
+  (cx:make mode ; not sem-mode on purpose
+     (string-append "("
+        ; Ensure correct sign of shift.
+        (cond ((equal? name "SRL")
+               (string-append "("
+                  (if (eq? (mode:class mode) 'UINT)
+                ""
+                "unsigned ")
+                  (mode:non-mode-c-type mode)
+                  ") "))
+              ((equal? name "SRA")
+               (string-append "("
+                  (mode:non-mode-c-type mode)
+                  ") "))
+              (else ""))
+        "(" (cx:c val1) ") "
+        c-op
+        " (" (cx:c val2) "))"))))
 )
 
 ; Process andif, orif.
@@ -767,21 +767,21 @@
 
 (define (s-boolifop estate name c-op src1 src2)
   (let* ((val1 (rtl-c-get estate DFLT src1))
-	 (val2 (rtl-c-get estate DFLT src2)))
+   (val2 (rtl-c-get estate DFLT src2)))
     ; FIXME: Argument checking.
     ; If this is the simulator and MODE is not a host mode, use a macro.
     ; ??? MODE here being the mode of SRC1.  Maybe later.
     (if (estate-rtl-cover-fns? estate)
-	(cx:make (mode:lookup 'BI)
-		 (string-append name ; "BI", leave off mode, no need for it
-				" (" (cx:c val1) ", "
-				(cx:c val2) ")"))
-	(cx:make (mode:lookup 'BI)
-		 (string-append "(("
-				(cx:c val1)
-				") " c-op " ("
-				(cx:c val2)
-				"))"))))
+  (cx:make (mode:lookup 'BI)
+     (string-append name ; "BI", leave off mode, no need for it
+        " (" (cx:c val1) ", "
+        (cx:c val2) ")"))
+  (cx:make (mode:lookup 'BI)
+     (string-append "(("
+        (cx:c val1)
+        ") " c-op " ("
+        (cx:c val2)
+        "))"))))
 )
 
 ; Mode conversions.
@@ -789,27 +789,27 @@
 (define (s-convop estate name mode s1)
   ; Get S1 in its normal mode, then convert.
   (let ((s (rtl-c-get estate DFLT s1))
-	(mode (mode:lookup mode)))
+  (mode (mode:lookup mode)))
     (if (and (not (estate-rtl-cover-fns? estate))
-	     (mode:host? (cx:mode s)))
-	(cx:make mode
-		 (string-append "((" (obj:str-name mode) ")"
-				" (" (obj:str-name (cx:mode s)) ")"
-				" (" (cx:c s) "))"))
-	(if (or (mode-float? mode)
-		(mode-float? (cx:mode s)))
-	    (cx:make mode
-		     (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
-				    (string-downcase name)
-				    (string-downcase (obj:str-name (-rtx-sem-mode (cx:mode s))))
-				    (string-downcase (obj:str-name (-rtx-sem-mode mode)))
-				    " (CGEN_CPU_FPU (current_cpu), "
-				    (cx:c s) ")"))
-	    (cx:make mode
-		     (string-append name
-				    (obj:str-name (-rtx-sem-mode (cx:mode s)))
-				    (obj:str-name (-rtx-sem-mode mode))
-				    " (" (cx:c s) ")")))))
+       (mode:host? (cx:mode s)))
+  (cx:make mode
+     (string-append "((" (obj:str-name mode) ")"
+        " (" (obj:str-name (cx:mode s)) ")"
+        " (" (cx:c s) "))"))
+  (if (or (mode-float? mode)
+    (mode-float? (cx:mode s)))
+      (cx:make mode
+         (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
+            (string-downcase name)
+            (string-downcase (obj:str-name (-rtx-sem-mode (cx:mode s))))
+            (string-downcase (obj:str-name (-rtx-sem-mode mode)))
+            " (CGEN_CPU_FPU (current_cpu), "
+            (cx:c s) ")"))
+      (cx:make mode
+         (string-append name
+            (obj:str-name (-rtx-sem-mode (cx:mode s)))
+            (obj:str-name (-rtx-sem-mode mode))
+            " (" (cx:c s) ")")))))
 )
 
 ; Compare SRC1 and SRC2 in mode MODE.  The result has mode BI.
@@ -819,35 +819,35 @@
 
 (define (s-cmpop estate name c-op mode src1 src2)
   (let* ((val1 (rtl-c-get estate mode src1))
-	 ; Refetch mode in case it was DFLT.
-	 (mode (cx:mode val1))
-	 (val2 (rtl-c-get estate mode src2)))
+   ; Refetch mode in case it was DFLT.
+   (mode (cx:mode val1))
+   (val2 (rtl-c-get estate mode src2)))
     ; FIXME: Argument checking.
 
     ; If no C operation has been provided, use a macro, or
     ; if this is the simulator and MODE is not a host mode, use a macro.
     (if (-rtx-use-sem-fn? estate c-op mode)
-	(if (mode-float? mode)
-	    (cx:make (mode:lookup 'BI)
-		     (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
-				    (string-downcase (symbol->string name))
-				    (string-downcase (obj:str-name (-rtx-sem-mode mode)))
-				    " (CGEN_CPU_FPU (current_cpu), "
-				    (cx:c val1) ", "
-				    (cx:c val2) ")"))
-	    (cx:make (mode:lookup 'BI)
-		     (string-append (string-upcase (symbol->string name))
-				    (if (memq name '(eq ne))
-					(obj:str-name (-rtx-sem-mode mode))
-					(obj:str-name mode))
-				    " (" (cx:c val1) ", "
-				    (cx:c val2) ")")))
-	(cx:make (mode:lookup 'BI)
-		 (string-append "(("
-				(cx:c val1)
-				") " c-op " ("
-				(cx:c val2)
-				"))"))))
+  (if (mode-float? mode)
+      (cx:make (mode:lookup 'BI)
+         (string-append "CGEN_CPU_FPU (current_cpu)->ops->"
+            (string-downcase (symbol->string name))
+            (string-downcase (obj:str-name (-rtx-sem-mode mode)))
+            " (CGEN_CPU_FPU (current_cpu), "
+            (cx:c val1) ", "
+            (cx:c val2) ")"))
+      (cx:make (mode:lookup 'BI)
+         (string-append (string-upcase (symbol->string name))
+            (if (memq name '(eq ne))
+          (obj:str-name (-rtx-sem-mode mode))
+          (obj:str-name mode))
+            " (" (cx:c val1) ", "
+            (cx:c val2) ")")))
+  (cx:make (mode:lookup 'BI)
+     (string-append "(("
+        (cx:c val1)
+        ") " c-op " ("
+        (cx:c val2)
+        "))"))))
 )
 
 ; Conditional execution.
@@ -864,26 +864,26 @@
       (error "if: too many elements in `else' part" else))
   (let ()
     (if (or (mode:eq? 'DFLT mode)
-	    (mode:eq? 'VOID mode))
-	(cx:make mode
-		 (string-append "if (" (cx:c (rtl-c-get estate DFLT cond)) ")"
-				" {\n" (cx:c (rtl-c-get estate mode then)) "}"
-				(if (not (null? else))
-				    (string-append " else {\n"
-						   (cx:c (rtl-c-get estate mode (car else)))
-						   "}\n")
-				    "\n")
-				))
-	(if (= (length else) 1)
-	    (cx:make mode
-		     (string-append "(("
-				    (cx:c (rtl-c-get estate DFLT cond))
-				    ") ? ("
-				    (cx:c (rtl-c-get estate mode then))
-				    ") : ("
-				    (cx:c (rtl-c-get estate mode (car else)))
-				    "))"))
-	    (error "non-VoidMode `if' must have `else' part"))))
+      (mode:eq? 'VOID mode))
+  (cx:make mode
+     (string-append "if (" (cx:c (rtl-c-get estate DFLT cond)) ")"
+        " {\n" (cx:c (rtl-c-get estate mode then)) "}"
+        (if (not (null? else))
+            (string-append " else {\n"
+               (cx:c (rtl-c-get estate mode (car else)))
+               "}\n")
+            "\n")
+        ))
+  (if (= (length else) 1)
+      (cx:make mode
+         (string-append "(("
+            (cx:c (rtl-c-get estate DFLT cond))
+            ") ? ("
+            (cx:c (rtl-c-get estate mode then))
+            ") : ("
+            (cx:c (rtl-c-get estate mode (car else)))
+            "))"))
+      (error "non-VoidMode `if' must have `else' part"))))
 )
 
 ; A multiway `if'.
@@ -900,59 +900,59 @@
 (define (s-cond estate mode . cond-code-list)
   (let ((vm? (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))))
     (if (null? cond-code-list)
-	(error "empty `cond'"))
+  (error "empty `cond'"))
     (let ((if-part (if vm?  "if (" "("))
-	  (then-part (if vm? ") " ") ? "))
-	  (elseif-part (if vm? " else if (" " : ("))
-	  (else-part (if vm? " else " " : "))
-	  (fi-part (if vm? "" ")")))
+    (then-part (if vm? ") " ") ? "))
+    (elseif-part (if vm? " else if (" " : ("))
+    (else-part (if vm? " else " " : "))
+    (fi-part (if vm? "" ")")))
       (let loop ((result
-		  (string-append
-		   if-part
-		   (cx:c (rtl-c-get estate DFLT (caar cond-code-list)))
-		   then-part
-		   (cx:c (apply s-sequence
-				(cons estate
-				      (cons mode
-					    (cons nil
-						  (cdar cond-code-list))))))))
-		 (ccl (cdr cond-code-list)))
-	(cond ((null? ccl) (cx:make mode result))
-	      ((eq? (caar ccl) 'else)
-	       (cx:make mode
-			(string-append
-			 result
-			 else-part
-			 (cx:c (apply s-sequence
-				      (cons estate
-					    (cons mode
-						  (cons nil
-							(cdar ccl)))))))))
-	      (else (loop (string-append
-			   result
-			   elseif-part
-			   (cx:c (rtl-c-get estate DFLT (caar ccl)))
-			   then-part
-			   (cx:c (apply s-sequence
-					(cons estate
-					      (cons mode
-						    (cons nil
-							  (cdar ccl)))))))
-			  (cdr ccl)))))))
+      (string-append
+       if-part
+       (cx:c (rtl-c-get estate DFLT (caar cond-code-list)))
+       then-part
+       (cx:c (apply s-sequence
+        (cons estate
+              (cons mode
+              (cons nil
+              (cdar cond-code-list))))))))
+     (ccl (cdr cond-code-list)))
+  (cond ((null? ccl) (cx:make mode result))
+        ((eq? (caar ccl) 'else)
+         (cx:make mode
+      (string-append
+       result
+       else-part
+       (cx:c (apply s-sequence
+              (cons estate
+              (cons mode
+              (cons nil
+              (cdar ccl)))))))))
+        (else (loop (string-append
+         result
+         elseif-part
+         (cx:c (rtl-c-get estate DFLT (caar ccl)))
+         then-part
+         (cx:c (apply s-sequence
+          (cons estate
+                (cons mode
+                (cons nil
+                (cdar ccl)))))))
+        (cdr ccl)))))))
 )
 
 ; Utility of s-case to print a case prefix (for lack of a better term).
 
 (define (-gen-case-prefix val)
   (string-append "  case "
-		 (cond ((number? val)
-			(number->string val))
-		       ((symbol? val)
-			(string-upcase (gen-c-symbol val))) ; yes, upcase
-		       ((string? val) val)
-		       (else
-			(parse-error "case:" "bad case" val)))
-		 " : ")
+     (cond ((number? val)
+      (number->string val))
+           ((symbol? val)
+      (string-upcase (gen-c-symbol val))) ; yes, upcase
+           ((string? val) val)
+           (else
+      (parse-error "case:" "bad case" val)))
+     " : ")
 )
 
 ; Utility of s-case to handle a void result.
@@ -966,19 +966,19 @@
     ")\n"
     "  {\n"
     (string-map (lambda (case-entry)
-		  (let ((caseval (car case-entry))
-			(code (cdr case-entry)))
-		    (string-append
-		     (cond ((list? caseval)
-			    (string-map -gen-case-prefix caseval))
-			   ((eq? 'else caseval)
-			    (string-append "  default : "))
-			   (else
-			    (-gen-case-prefix caseval)))
-		     (cx:c (apply s-sequence
-				  (cons estate (cons VOID (cons nil code)))))
-		     "    break;\n")))
-		case-list)
+      (let ((caseval (car case-entry))
+      (code (cdr case-entry)))
+        (string-append
+         (cond ((list? caseval)
+          (string-map -gen-case-prefix caseval))
+         ((eq? 'else caseval)
+          (string-append "  default : "))
+         (else
+          (-gen-case-prefix caseval)))
+         (cx:c (apply s-sequence
+          (cons estate (cons VOID (cons nil code)))))
+         "    break;\n")))
+    case-list)
     "  }\n"))
 )
 
@@ -988,25 +988,25 @@
   (assert (not (null? cases)))
   (let loop ((result "") (cases cases))
     (if (null? cases)
-	result
-	(let ((case (cond ((number? (car cases))
-			   (car cases))
-			  ((symbol? (car cases))
-			   (if (enum-lookup-val (car cases))
-			       (rtx-make 'enum mode (car cases))
-			       (context-error (estate-context estate)
-					      "symbol not an enum"
-					      (car cases))))
-			  (else (error "invalid case" (car cases))))))
-	  (loop (string-append
-		 result
-		 (if (= (string-length result) 0)
-		     ""
-		     " || ")
-		 (cx:c (rtl-c-get estate mode test))
-		 " == "
-		 (cx:c (rtl-c-get estate mode case)))
-		(cdr cases)))))
+  result
+  (let ((case (cond ((number? (car cases))
+         (car cases))
+        ((symbol? (car cases))
+         (if (enum-lookup-val (car cases))
+             (rtx-make 'enum mode (car cases))
+             (context-error (estate-context estate)
+                "symbol not an enum"
+                (car cases))))
+        (else (error "invalid case" (car cases))))))
+    (loop (string-append
+     result
+     (if (= (string-length result) 0)
+         ""
+         " || ")
+     (cx:c (rtl-c-get estate mode test))
+     " == "
+     (cx:c (rtl-c-get estate mode case)))
+    (cdr cases)))))
 )
 
 ; Utility of s-case to handle a non-void result.
@@ -1014,43 +1014,43 @@
 
 (define (s-case-non-vm estate mode test case-list)
   (let ((if-part "(")
-	(then-part ") ? ")
-	(elseif-part " : (")
-	(else-part " : ")
-	(fi-part ")"))
+  (then-part ") ? ")
+  (elseif-part " : (")
+  (else-part " : ")
+  (fi-part ")"))
     (let loop ((result
-		(string-append
-		 if-part
-		 (-gen-non-vm-case-test estate mode test (caar case-list))
-		 then-part
-		 (cx:c (apply s-sequence
-			      (cons estate
-				    (cons mode
-					  (cons nil
-						(cdar case-list))))))))
-	       (cl (cdr case-list)))
+    (string-append
+     if-part
+     (-gen-non-vm-case-test estate mode test (caar case-list))
+     then-part
+     (cx:c (apply s-sequence
+            (cons estate
+            (cons mode
+            (cons nil
+            (cdar case-list))))))))
+         (cl (cdr case-list)))
       (cond ((null? cl) (cx:make mode result))
-	    ((eq? (caar cl) 'else)
-	     (cx:make mode
-		      (string-append
-		       result
-		       else-part
-		       (cx:c (apply s-sequence
-				    (cons estate
-					  (cons mode
-						(cons nil
-						      (cdar cl)))))))))
-	    (else (loop (string-append
-			 result
-			 elseif-part
-			 (-gen-non-vm-case-test estate mode test (caar cl))
-			 then-part
-			 (cx:c (apply s-sequence
-				      (cons estate
-					    (cons mode
-						  (cons nil
-							(cdar cl)))))))
-			(cdr cl))))))
+      ((eq? (caar cl) 'else)
+       (cx:make mode
+          (string-append
+           result
+           else-part
+           (cx:c (apply s-sequence
+            (cons estate
+            (cons mode
+            (cons nil
+                  (cdar cl)))))))))
+      (else (loop (string-append
+       result
+       elseif-part
+       (-gen-non-vm-case-test estate mode test (caar cl))
+       then-part
+       (cx:c (apply s-sequence
+              (cons estate
+              (cons mode
+              (cons nil
+              (cdar cl)))))))
+      (cdr cl))))))
 )
 
 ; C switch statement
@@ -1076,10 +1076,10 @@
 
 (define (-par-new-temp! mode)
   (set! -par-temp-list
-	(cons (cx:make mode (string-append "temp"
-					   (number->string
-					    (length -par-temp-list))))
-	      -par-temp-list))
+  (cons (cx:make mode (string-append "temp"
+             (number->string
+              (length -par-temp-list))))
+        -par-temp-list))
   (car -par-temp-list)
 )
 
@@ -1098,8 +1098,8 @@
    "  "
    ; ??? mode:c-type
    (string-map (lambda (temp) (string-append (obj:str-name (cx:mode temp))
-					     " " (cx:c temp) ";"))
-	       temp-list)
+               " " (cx:c temp) ";"))
+         temp-list)
    "\n")
 )
 
@@ -1112,25 +1112,25 @@
 
 (define (-par-replace-set-dests estate exprs)
   (let ((sets (list 'set 'set-quiet
-		    (rtx-lookup 'set) (rtx-lookup 'set-quiet))))
+        (rtx-lookup 'set) (rtx-lookup 'set-quiet))))
     (letrec ((replace
-	      (lambda (expr)
-		(let ((name (car expr))
-		      (options (rtx-options expr))
-		      (mode (rtx-mode expr)))
-		  (if (memq name sets)
-		      (list name
-			    options
-			    mode
-			    (-par-new-temp! ; replace dest with temp
-			     (if (mode:eq? 'DFLT mode)
-				 (rtx-lvalue-mode-name estate (rtx-set-dest expr))
-				 mode))
-			    (rtx-set-src expr))
-		      (cons name
-			    (cons options
-				  (cons mode (replace (rtx-args expr)))))))))
-	     )
+        (lambda (expr)
+    (let ((name (car expr))
+          (options (rtx-options expr))
+          (mode (rtx-mode expr)))
+      (if (memq name sets)
+          (list name
+          options
+          mode
+          (-par-new-temp! ; replace dest with temp
+           (if (mode:eq? 'DFLT mode)
+         (rtx-lvalue-mode-name estate (rtx-set-dest expr))
+         mode))
+          (rtx-set-src expr))
+          (cons name
+          (cons options
+          (cons mode (replace (rtx-args expr)))))))))
+       )
       (map replace exprs)))
 )
 
@@ -1138,22 +1138,22 @@
 
 (define (-par-replace-set-srcs estate exprs)
   (let ((sets (list 'set 'set-quiet
-		    (rtx-lookup 'set) (rtx-lookup 'set-quiet))))
+        (rtx-lookup 'set) (rtx-lookup 'set-quiet))))
     (letrec ((replace
-	      (lambda (expr)
-		(let ((name (car expr))
-		      (options (rtx-options expr))
-		      (mode (rtx-mode expr)))
-		  (if (memq name sets)
-		      (list name
-			    options
-			    mode
-			    (rtx-set-dest expr)
-			    (-par-next-temp!)) ; the source's temp
-		      (cons name
-			    (cons options
-				  (cons mode (replace (cddr expr)))))))))
-	     )
+        (lambda (expr)
+    (let ((name (car expr))
+          (options (rtx-options expr))
+          (mode (rtx-mode expr)))
+      (if (memq name sets)
+          (list name
+          options
+          mode
+          (rtx-set-dest expr)
+          (-par-next-temp!)) ; the source's temp
+          (cons name
+          (cons options
+          (cons mode (replace (cddr expr)))))))))
+       )
       (map replace exprs)))
 )
 
@@ -1164,68 +1164,68 @@
     ; Initialize -par-temp-list for -par-replace-set-dests.
     (set! -par-temp-list nil)
     (let* ((set-dests (string-map (lambda (e)
-				    (rtl-c-with-estate estate VOID e))
-				  (-par-replace-set-dests estate exprs)))
-	   (temps (reverse! -par-temp-list)))
+            (rtl-c-with-estate estate VOID e))
+          (-par-replace-set-dests estate exprs)))
+     (temps (reverse! -par-temp-list)))
       ; Initialize -par-temp-list for -par-replace-set-srcs.
       (set! -par-temp-list temps)
       (cx:make VOID
-	       (string-append
-		; FIXME: do {} while (0); doesn't get "optimized out"
-		; internally by gcc, meaning two labels and a loop are
-		; created for it to have to process.  We can generate pretty
-		; big files and can cause gcc to require *lots* of memory.
-		; So let's try just {} ...
-		"{\n"
-		(-gen-par-temp-defns temps)
-		set-dests
-		(string-map (lambda (e)
-			      (rtl-c-with-estate estate VOID e))
-			    (-par-replace-set-srcs estate exprs))
-		"}\n")
-	       )))
+         (string-append
+    ; FIXME: do {} while (0); doesn't get "optimized out"
+    ; internally by gcc, meaning two labels and a loop are
+    ; created for it to have to process.  We can generate pretty
+    ; big files and can cause gcc to require *lots* of memory.
+    ; So let's try just {} ...
+    "{\n"
+    (-gen-par-temp-defns temps)
+    set-dests
+    (string-map (lambda (e)
+            (rtl-c-with-estate estate VOID e))
+          (-par-replace-set-srcs estate exprs))
+    "}\n")
+         )))
 )
 
 ; Return a <c-expr> node for a `sequence'.
 
 (define (s-sequence estate mode env . exprs)
   (let* ((env (rtx-env-make-locals env)) ; compile env
-	 (estate (estate-push-env estate env)))
+   (estate (estate-push-env estate env)))
     (if (or (mode:eq? 'DFLT mode)
-	    (mode:eq? 'VOID mode))
-	(cx:make mode
-		 (string-append 
-		  ; FIXME: do {} while (0); doesn't get "optimized out"
-		  ; internally by gcc, meaning two labels and a loop are
-		  ; created for it to have to process.  We can generate pretty
-		  ; big files and can cause gcc to require *lots* of memory.
-		  ; So let's try just {} ...
-		  "{\n"
-		  (gen-temp-defs estate env)
-		  (string-map (lambda (e)
-				(rtl-c-with-estate estate DFLT e))
-			      exprs)
-		  "}\n"))
-	(cx:make mode
-		 (string-append
-		  ; Don't use GCC extension unless necessary.
-		  (if (rtx-env-empty? env) "(" "({ ")
-		  (gen-temp-defs estate env)
-		  (string-drop 2
-			       (string-map
-				(lambda (e)
-				  (string-append
-				   (if (rtx-env-empty? env) ", " "; ")
-				   ; Strip off gratuitous ";\n" at end of expressions that
-				   ; misguessed themselves to be in statement context.
-				   ; See s-c-call, s-c-call-raw above.
-				   (let ((substmt (rtl-c-with-estate estate DFLT e)))
-				     (if (and (rtx-env-empty? env)
-					      (string=? (string-take -2 substmt) ";\n"))
-					 (string-drop -2 substmt)
-					 substmt))))
-				exprs))
-		  (if (rtx-env-empty? env) ")" "; })")))))
+      (mode:eq? 'VOID mode))
+  (cx:make mode
+     (string-append 
+      ; FIXME: do {} while (0); doesn't get "optimized out"
+      ; internally by gcc, meaning two labels and a loop are
+      ; created for it to have to process.  We can generate pretty
+      ; big files and can cause gcc to require *lots* of memory.
+      ; So let's try just {} ...
+      "{\n"
+      (gen-temp-defs estate env)
+      (string-map (lambda (e)
+        (rtl-c-with-estate estate DFLT e))
+            exprs)
+      "}\n"))
+  (cx:make mode
+     (string-append
+      ; Don't use GCC extension unless necessary.
+      (if (rtx-env-empty? env) "(" "({ ")
+      (gen-temp-defs estate env)
+      (string-drop 2
+             (string-map
+        (lambda (e)
+          (string-append
+           (if (rtx-env-empty? env) ", " "; ")
+           ; Strip off gratuitous ";\n" at end of expressions that
+           ; misguessed themselves to be in statement context.
+           ; See s-c-call, s-c-call-raw above.
+           (let ((substmt (rtl-c-with-estate estate DFLT e)))
+             (if (and (rtx-env-empty? env)
+                (string=? (string-take -2 substmt) ";\n"))
+           (string-drop -2 substmt)
+           substmt))))
+        exprs))
+      (if (rtx-env-empty? env) ")" "; })")))))
 )
 
 ; *****************************************************************************
@@ -1238,7 +1238,7 @@
   `(begin
      (assert (rtx-lookup (quote ,rtx)))
      (vector-set! table (rtx-num (rtx-lookup (quote ,rtx)))
-		  (lambda ,args ,@(cons expr rest))))
+      (lambda ,args ,@(cons expr rest))))
 )
 
 (define (rtl-c-init!)
@@ -1255,12 +1255,12 @@
 
 (define-fn error (estate options mode message)
   (let ((c-call (s-c-call estate mode "cgen_rtx_error"
-			  (string-append "\""
-					 (backslash "\"" message)
-					 "\""))))
+        (string-append "\""
+           (backslash "\"" message)
+           "\""))))
     (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
-	c-call
-	(cx:make mode (string-append "(" (cx:c c-call) ", 0)"))))
+  c-call
+  (cx:make mode (string-append "(" (cx:c c-call) ", 0)"))))
 )
 
 ; Enum support
@@ -1280,72 +1280,72 @@
       (cx:make 'UINT (string-append "FLD (" (gen-c-symbol ifld-name) ")")))
 ;  (let ((f (current-ifld-lookup ifld-name)))
 ;    (make <operand> ifld-name ifld-name
-;	  (atlist-cons (bool-attr-make 'SEM-ONLY #t)
-;		       (obj-atlist f))
-;	  (obj:name (ifld-hw-type f))
-;	  (obj:name (ifld-mode f))
-;	  (make <hw-index> 'anonymous
-;		'ifield (ifld-mode f) f)
-;	  nil #f #f))
+;   (atlist-cons (bool-attr-make 'SEM-ONLY #t)
+;          (obj-atlist f))
+;   (obj:name (ifld-hw-type f))
+;   (obj:name (ifld-mode f))
+;   (make <hw-index> 'anonymous
+;   'ifield (ifld-mode f) f)
+;   nil #f #f))
 )
 
 ; Operand support
 
 (define-fn operand (estate options mode object-or-name)
   (cond ((operand? object-or-name)
-	 object-or-name)
-	((symbol? object-or-name)
-	 (let ((object (current-op-lookup object-or-name)))
-	   (if (not object)
-	       (context-error (estate-context estate)
-			      "undefined operand" object-or-name))
-	   object))
-	(else
-	 (context-error (estate-context estate)
-			"bad arg to `operand'" object-or-name)))
+   object-or-name)
+  ((symbol? object-or-name)
+   (let ((object (current-op-lookup object-or-name)))
+     (if (not object)
+         (context-error (estate-context estate)
+            "undefined operand" object-or-name))
+     object))
+  (else
+   (context-error (estate-context estate)
+      "bad arg to `operand'" object-or-name)))
 )
 
 (define-fn xop (estate options mode object) 
   (let ((delayed (assoc '#:delay (estate-modifiers estate))))
     (if (and delayed
-	     (equal? APPLICATION 'SID-SIMULATOR)
-	     (operand? object))
-	;; if we're looking at an operand inside a (delay ...) rtx, then we
-	;; are talking about a _delayed_ operand, which is a different
-	;; beast.  rather than try to work out what context we were
-	;; constructed within, we just clone the operand instance and set
-	;; the new one to have a delayed value. the setters and getters
-	;; will work it out.
-	(let ((obj (object-copy object))
-	      (amount (cadr delayed)))
-	  (op:set-delay! obj amount)
-	  obj)
-	;; else return the normal object
-	object)))
+       (equal? APPLICATION 'SID-SIMULATOR)
+       (operand? object))
+  ;; if we're looking at an operand inside a (delay ...) rtx, then we
+  ;; are talking about a _delayed_ operand, which is a different
+  ;; beast.  rather than try to work out what context we were
+  ;; constructed within, we just clone the operand instance and set
+  ;; the new one to have a delayed value. the setters and getters
+  ;; will work it out.
+  (let ((obj (object-copy object))
+        (amount (cadr delayed)))
+    (op:set-delay! obj amount)
+    obj)
+  ;; else return the normal object
+  object)))
 
 (define-fn local (estate options mode object-or-name)
   (cond ((rtx-temp? object-or-name)
-	 object-or-name)
-	((symbol? object-or-name)
-	 (let ((object (rtx-temp-lookup (estate-env estate) object-or-name)))
-	   (if (not object)
-	       (context-error (estate-context estate)
-			      "undefined local" object-or-name))
-	   object))
-	(else
-	 (context-error (estate-context estate)
-			"bad arg to `local'" object-or-name)))
+   object-or-name)
+  ((symbol? object-or-name)
+   (let ((object (rtx-temp-lookup (estate-env estate) object-or-name)))
+     (if (not object)
+         (context-error (estate-context estate)
+            "undefined local" object-or-name))
+     object))
+  (else
+   (context-error (estate-context estate)
+      "bad arg to `local'" object-or-name)))
 )
 
 (define-fn reg (estate options mode hw-elm . indx-sel)
   (let ((indx (or (list-maybe-ref indx-sel 0) 0))
-	(sel (or (list-maybe-ref indx-sel 1) hw-selector-default)))
+  (sel (or (list-maybe-ref indx-sel 1) hw-selector-default)))
     (s-hw estate mode hw-elm indx sel))
 )
 
 (define-fn raw-reg (estate options mode hw-elm . indx-sel)
   (let ((indx (or (list-maybe-ref indx-sel 0) 0))
-	(sel (or (list-maybe-ref indx-sel 1) hw-selector-default)))
+  (sel (or (list-maybe-ref indx-sel 1) hw-selector-default)))
     (let ((result (s-hw estate mode hw-elm indx sel)))
       (obj-cons-attr! result (bool-attr-make 'RAW #t))
       result))
@@ -1353,7 +1353,7 @@
 
 (define-fn mem (estate options mode addr . sel)
   (s-hw estate mode 'h-memory addr
-	(if (pair? sel) (car sel) hw-selector-default))
+  (if (pair? sel) (car sel) hw-selector-default))
 )
 
 (define-fn pc (estate options mode)
@@ -1364,11 +1364,11 @@
   (if (not (insn? (estate-owner estate)))
       (error "ref: not processing an insn"))
   (cx:make 'UINT
-	   (string-append
-	    "(referenced & (1 << "
-	    (number->string
-	     (op:num (insn-lookup-op (estate-owner estate) name)))
-	    "))"))
+     (string-append
+      "(referenced & (1 << "
+      (number->string
+       (op:num (insn-lookup-op (estate-owner estate) name)))
+      "))"))
 )
 
 ; ??? Maybe this should return an operand object.
@@ -1385,29 +1385,29 @@
   (case APPLICATION
     ((SID-SIMULATOR)
      (let* ((n (cadddr num-node))
-	    (old-delay (let ((old (assoc '#:delay (estate-modifiers estate))))
-			 (if old (cadr old) 0)))
-	    (new-delay (+ n old-delay)))    
+      (old-delay (let ((old (assoc '#:delay (estate-modifiers estate))))
+       (if old (cadr old) 0)))
+      (new-delay (+ n old-delay)))    
        (begin
-	 ;; check for proper usage
-     	 (if (let* ((hw (case (car rtx) 
-			  ((operand) (op:type (rtx-operand-obj rtx)))
-			  ((xop) (op:type (rtx-xop-obj rtx)))
-			  (else #f))))		    	       
-	       (not (and hw (or (pc? hw) (memory? hw) (register? hw)))))
-	     (context-error 
-	      (estate-context estate) 
-	      (string-append 
-	       "(delay ...) rtx applied to wrong type of operand '" (car rtx) "'. should be pc, register or memory")))
-	 ;; signal an error if we're delayed and not in a "parallel-insns" CPU
-	 (if (not (with-parallel?)) 
-	     (context-error 	      
-	      (estate-context estate) 
-	      "delayed operand in a non-parallel cpu"))
-	 ;; update cpu-global pipeline bound
-	 (cpu-set-max-delay! (current-cpu) (max (cpu-max-delay (current-cpu)) new-delay))      
-	 ;; pass along new delay to embedded rtx
-	 (rtx-eval-with-estate rtx mode (estate-with-modifiers estate `((#:delay ,new-delay)))))))
+   ;; check for proper usage
+       (if (let* ((hw (case (car rtx) 
+        ((operand) (op:type (rtx-operand-obj rtx)))
+        ((xop) (op:type (rtx-xop-obj rtx)))
+        (else #f))))                 
+         (not (and hw (or (pc? hw) (memory? hw) (register? hw)))))
+       (context-error 
+        (estate-context estate) 
+        (string-append 
+         "(delay ...) rtx applied to wrong type of operand '" (car rtx) "'. should be pc, register or memory")))
+   ;; signal an error if we're delayed and not in a "parallel-insns" CPU
+   (if (not (with-parallel?)) 
+       (context-error         
+        (estate-context estate) 
+        "delayed operand in a non-parallel cpu"))
+   ;; update cpu-global pipeline bound
+   (cpu-set-max-delay! (current-cpu) (max (cpu-max-delay (current-cpu)) new-delay))      
+   ;; pass along new delay to embedded rtx
+   (rtx-eval-with-estate rtx mode (estate-with-modifiers estate `((#:delay ,new-delay)))))))
 
     ;; not in sid-land
     (else (s-sequence (estate-with-modifiers estate '((#:delay))) VOID '() rtx))))
@@ -1425,18 +1425,18 @@
 
 (define-fn eq-attr (estate options mode obj attr-name value)
   (cx:make 'INT
-	   (string-append "(GET_ATTR ("
-			  (gen-c-symbol attr-name)
-			  ") == "
-			  (gen-c-symbol value)
-			  ")"))
+     (string-append "(GET_ATTR ("
+        (gen-c-symbol attr-name)
+        ") == "
+        (gen-c-symbol value)
+        ")"))
 )
 
 (define-fn attr (estate options mode owner attr-name)
   (cond ((equal? owner '(current-insn () DFLT))
-	 (s-c-raw-call estate 'INT "GET_ATTR"
-		       (string-upcase (gen-c-symbol attr-name))))
-	(else (error "attr: unsupported object type:" owner)))
+   (s-c-raw-call estate 'INT "GET_ATTR"
+           (string-upcase (gen-c-symbol attr-name))))
+  (else (error "attr: unsupported object type:" owner)))
 )
 
 (define-fn const (estate options mode c)
@@ -1445,22 +1445,22 @@
       (set! mode 'INT))
   (let ((mode (mode:lookup mode)))
     (cx:make mode
-	     (cond ((or (mode:eq? 'DI mode)
-			(mode:eq? 'UDI mode)
-			(< #xffffffff c)
-			(> #x-80000000 c))
-		    (string-append "MAKEDI ("
-				   (gen-integer (high-part c)) ", "
-				   (gen-integer (low-part c))
-				   ")"))
-		   ((and (<= #x-80000000 c) (> #x80000000 c))
-		    (number->string c))
-		   ((and (<= #x80000000 c) (>= #xffffffff c))
-		    ; ??? GCC complains if not affixed with "U" but that's not k&r.
-		    ;(string-append (number->string val) "U"))
-		    (string-append "0x" (number->string c 16)))
-		   ; Else punt.
-		   (else (number->string c)))))
+       (cond ((or (mode:eq? 'DI mode)
+      (mode:eq? 'UDI mode)
+      (< #xffffffff c)
+      (> #x-80000000 c))
+        (string-append "MAKEDI ("
+           (gen-integer (high-part c)) ", "
+           (gen-integer (low-part c))
+           ")"))
+       ((and (<= #x-80000000 c) (> #x80000000 c))
+        (number->string c))
+       ((and (<= #x80000000 c) (>= #xffffffff c))
+        ; ??? GCC complains if not affixed with "U" but that's not k&r.
+        ;(string-append (number->string val) "U"))
+        (string-append "0x" (number->string c 16)))
+       ; Else punt.
+       (else (number->string c)))))
 )
 
 (define-fn join (estate options out-mode in-mode arg1 . arg-rest)
@@ -1468,30 +1468,30 @@
   ; FIXME: Ensure correct number of args for in/out modes.
   ; Ensure compatible modes.
   (apply s-c-raw-call (cons estate
-			    (cons out-mode
-				  (cons (stringsym-append "JOIN"
-							  in-mode
-							  out-mode)
-					(cons arg1 arg-rest)))))
+          (cons out-mode
+          (cons (stringsym-append "JOIN"
+                in-mode
+                out-mode)
+          (cons arg1 arg-rest)))))
 )
 
 (define-fn subword (estate options mode value word-num)
   (let* ((mode (mode:lookup mode))
-	 (val (rtl-c-get estate DFLT value))
-	 ; Refetch mode in case it was DFLT.
-	 (val-mode (cx:mode val)))
+   (val (rtl-c-get estate DFLT value))
+   ; Refetch mode in case it was DFLT.
+   (val-mode (cx:mode val)))
     (cx:make mode
-	     (string-append "SUBWORD"
-			    (obj:str-name val-mode) (obj:str-name mode)
-			    " (" (cx:c val)
-			    (if (mode-bigger? val-mode mode)
-				(string-append
-				 ", "
-				 (if (number? word-num)
-				     (number->string word-num)
-				     (cx:c (rtl-c-get estate DFLT word-num))))
-				"")
-			    ")")))
+       (string-append "SUBWORD"
+          (obj:str-name val-mode) (obj:str-name mode)
+          " (" (cx:c val)
+          (if (mode-bigger? val-mode mode)
+        (string-append
+         ", "
+         (if (number? word-num)
+             (number->string word-num)
+             (cx:c (rtl-c-get estate DFLT word-num))))
+        "")
+          ")")))
 )
 
 (define-fn c-code (estate options mode text)
@@ -1706,21 +1706,21 @@
 (define-fn member (estate options mode value set)
   ; FIXME: Multiple evalutions of VALUE.
   (let ((c-value (rtl-c-get estate 'DFLT value))
-	(set (rtx-number-list-values set)))
+  (set (rtx-number-list-values set)))
     (let loop ((set (cdr set))
-	       (code (string-append "(" (cx:c c-value)
-				    " == "
-				    (gen-integer (car set))
-				    ")")))
+         (code (string-append "(" (cx:c c-value)
+            " == "
+            (gen-integer (car set))
+            ")")))
       (if (null? set)
-	  (cx:make (mode:lookup 'BI) (string-append "(" code ")"))
-	  (loop (cdr set)
-		(string-append code
-			       " || ("
-			       (cx:c c-value)
-			       " == "
-			       (gen-integer (car set))
-			       ")")))))
+    (cx:make (mode:lookup 'BI) (string-append "(" code ")"))
+    (loop (cdr set)
+    (string-append code
+             " || ("
+             (cx:c c-value)
+             " == "
+             (gen-integer (car set))
+             ")")))))
 )
 
 (define-fn if (estate options mode cond then . else)
@@ -1741,7 +1741,7 @@
 
 (define-fn sequence (estate options mode locals expr . exprs)
   (apply s-sequence
-	 (cons estate (cons mode (cons locals (cons expr exprs)))))
+   (cons estate (cons mode (cons locals (cons expr exprs)))))
 )
 
 (define-fn closure (estate options mode expr env)

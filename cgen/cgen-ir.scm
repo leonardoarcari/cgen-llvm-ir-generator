@@ -5,6 +5,7 @@
 ; Load the various support routines.
 (define (load-files srcdir)
   (load (string-append srcdir "/read.scm"))
+  (load (string-append srcdir "/rtl-cpp.scm"))
   (load (string-append srcdir "/ir-gen.scm"))
   (load (string-append srcdir "/ir-gen-registers.scm"))
   (load (string-append srcdir "/ir-gen-decoder.scm"))

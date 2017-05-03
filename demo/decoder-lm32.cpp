@@ -426,43 +426,43 @@ void BInstruction::parseSfmt(uint8_t *code) {
 }
 
 void BiInstruction::parseSfmt(uint8_t *code) {
-  sfmt.f_call = ;
+  sfmt.f_call = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 25, 26)), 6)), 4));
 }
 
 void BeInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void BgInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void BgeInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void BgeuInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void BguInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void BneInstruction::parseSfmt(uint8_t *code) {
   sfmt.f_r0 = extractLSB0<unsigned int> (insn, 32, 25, 5);
   sfmt.f_r1 = extractLSB0<unsigned int> (insn, 32, 20, 5);
-  sfmt.f_branch = ;
+  sfmt.f_branch = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 15, 16)), 16)), 14));
 }
 
 void CallInstruction::parseSfmt(uint8_t *code) {
@@ -470,7 +470,7 @@ void CallInstruction::parseSfmt(uint8_t *code) {
 }
 
 void CalliInstruction::parseSfmt(uint8_t *code) {
-  sfmt.f_call = ;
+  sfmt.f_call = Add(pc, Sra((Sll((extractLSB0<int> (insn, 32, 25, 26)), 6)), 4));
 }
 
 void CmpeInstruction::parseSfmt(uint8_t *code) {

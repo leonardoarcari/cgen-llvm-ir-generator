@@ -389,7 +389,154 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
     (logit 4 "    Exiting gen-ir-ifld-extract-base for " (obj:name f) " ...\n")
     (if (not decode)
       extraction
-      ""
+      ; cadr: fetches expression to be evaluated
+      ; caar: fetches symbol in arglist
+      ; cadar: fetches `pc' symbol in arglist
+      (rtl-cpp VOID (cadr decode)
+        (list (list (caar decode) 'UINT extraction)
+          (list (cadar decode) 'IAI "pc"))
+            #:ifield-var? #t)
+    )
+  )
+)
+
+; Subroutine of -gen-ir-ifld-extract-beyond to extract the relevant value
+; from WORD-NAME and move it into place.
+
+(define (-gen-ir-extract-word word-name word-start word-length
+         field-start field-length
+         unsigned? lsb0?)
+  (let* ((word-end (+ word-start word-length))
+      (start (if lsb0? (+ 1 (- field-start field-length)) field-start))
+      (end (+ start field-length))
+      (base (if (< start word-start) word-start start)))
+
+    (string-append "extract"
+      (if lsb0? "LSB0" "MSB0")
+      (if (and (not unsigned?)
+            ; Only want sign extension for word with sign bit.
+            (bitrange-overlap? field-start 1
+              word-start word-length
+              lsb0?
+            )
+          )
+        "<int> ("
+        "<unsigned int> (")
+      ; What to extract from.
+      word-name
+      ", "
+      ; Size of this chunk.
+      (number->string word-length)
+      ", "
+      ; MSB of this chunk.
+      (number->string
+        (if lsb0?
+          (if (> end word-end)
+            (- word-end 1)
+            (- end word-start 1)
+          )
+          (if (< start word-start)
+            0
+            (- start word-start)
+          )
+        )
+      )
+      ", "
+      ; Length of field within this chunk.
+      (number->string 
+        (if (< end word-end)
+          (- end base)
+          (- word-end base)
+        )
+      )
+      ") << "
+      ; Adjustment for this chunk within a full field.
+      (number->string 
+        (if (> end word-end)
+          (- end word-end)
+          0
+        )
+      )
+    )
+  )
+)
+
+; Return C++ code to extract a field that extends beyond the base insn.
+;
+; ============ FROM CGEN / utils-gen.scm ============
+; Things get tricky in the non-integral-insn case (no kidding).
+; This case includes every architecture with at least one insn larger
+; than 32 bits, and all architectures where insns smaller than 32 bits
+; can't be interpreted as an int.
+; ??? And maybe other architectures not considered yet.
+; We want to handle these reasonably fast as this includes architectures like
+; the ARC and I960 where 99% of the insns are 32 bits, with a few insns that
+; take a 32 bit immediate.  It would be a real shame to unnecessarily slow down
+; handling of 99% of the instruction set just for a few insns.  Fortunately
+; for these chips base-insn includes these insns, so things fall out naturally.
+;
+; BASE-LENGTH is base-insn-bitsize.
+; TOTAL-LENGTH is the total length of the insn.
+; VAR-LIST is a list of variables containing the insn.
+; Each element in VAR-LIST is (name start length).
+; The contents of the insn are in several variables: insn, word_[123...],
+; where `insn' contains the "base insn" and `word_N' is a set of variables
+; recording the rest of the insn, 32 bits at a time (with the last one
+; containing whatever is left over).
+
+(define (-gen-ir-ifld-extract-beyond f base-length total-length var-list)
+  ; First compute the list of variables that contains pieces of the
+  ; desired value.
+  (let ((start (+ (ifld-start f total-length) (ifld-word-offset f)))
+      (length (ifld-length f))
+      (extraction #f)
+      ; extra processing to perform on extracted value
+      (decode (ifld-decode f))
+      (lsb0? (current-arch-insn-lsb0?)))
+
+    ; Find which vars are needed and move the value into place.
+    (let loop ((var-list var-list) (result (list ")")))
+      (if (null? var-list)
+        (set! extraction (apply string-append (cons "(0" result)))
+        (let ((var-name (caar var-list))
+            (var-start (cadar var-list))
+            (var-length (caddar var-list)))
+          
+          (if (bitrange-overlap? start length
+                var-start var-length
+                lsb0?)
+            (loop (cdr var-list)
+              (cons "|"
+                (cons 
+                  (-gen-ir-extract-word var-name
+                    var-start
+                    var-length
+                    start length
+                    (eq? (mode:class (ifld-mode f)) 'UINT)
+                    lsb0?
+                  )
+                  result
+                )
+              )
+            )
+            (loop (cdr var-list) result)
+          )
+        )
+      )
+    )
+    ; If the field doesn't have a special decode expression, just return the
+    ; raw extracted value.  Otherwise, emit the expression.
+    (if (not decode)
+      extraction
+      ; cadr: fetches expression to be evaluated
+      ; caar: fetches symbol in arglist
+      ; cadar: fetches `pc' symbol in arglist
+      (rtl-cpp VOID (cadr decode)
+        (list 
+          (list (caar decode) 'UINT extraction)
+          (list (cadar decode) 'IAI "pc")
+        ) #:ifield-var? #t
+      )
     )
   )
 )
@@ -402,9 +549,47 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
     (sanitize-elm-name (obj:name f)) " = "
     (if (adata-integral-insn? CURRENT-ARCH)
       (-gen-ir-ifld-extract-base f total-length base-value)
-      ; TODO: Implement beyond-base
+      (if (ifld-beyond-base? f base-length total-length)
+        (-gen-ir-ifld-extract-beyond f base-length total-length var-list)
+        (-gen-ir-ifld-extract-base f base-length base-value)
+      )
     )
     ";\n"
+  )
+)
+
+; Return C++ code to extract a <multi-ifield> from an insn.
+; This must have the same signature as gen-ifld-extract as both can be
+; made methods in application code.
+
+(define (gen-ir-multi-ifld-extract f indent base-length total-length base-value var-list)
+  ; The subfields must have already been extracted.
+  (let* ((decode-proc (ifld-decode f))
+      (varname (gen-sym f))
+      (decode 
+        (string-list
+          ;; First, the block that extract the multi-ifield into the ifld variable
+          (rtl-cpp VOID (multi-ifld-extract f) nil
+            #:ifield-var? #t
+          )
+          ;; Next, the decode routine that modifies it
+          (if decode-proc
+            (string-append
+              "  " varname " = "
+              (rtl-cpp VOID (cadr decode-proc)
+                (list 
+                  (list (caar decode-proc) 'UINT varname)
+                  (list (cadar decode-proc) 'IAI "pc")
+                )
+                #:ifield-var? #t
+              )
+              ";\n"
+            )
+            "")
+        )
+      ))
+    
+    decode ; Return it
   )
 )
 
@@ -449,14 +634,13 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
           (logit 3 "  Extracting field " (obj:name f) " ...\n")
           ; Dispatching on a method works better, as would a generic fn.
           (if (multi-ifield? f)
-            ; (gen-multi-ifld-extract
-            ;   f indent base-length total-length "insn"
-            ;   (-gen-extract-beyond-var-list base-length "word_"
-            ;     chunk-specs
-            ;     (current-arch-insn-lsb0?)
-            ;   )
-            ; )
-            ""
+            (gen-ir-multi-ifld-extract
+              f indent base-length total-length "insn"
+              (-gen-extract-beyond-var-list base-length "word_"
+                chunk-specs
+                (current-arch-insn-lsb0?)
+              )
+            )
             (gen-ir-ifld-extract
               f indent base-length total-length "insn"
               (-gen-extract-beyond-var-list base-length "word_"

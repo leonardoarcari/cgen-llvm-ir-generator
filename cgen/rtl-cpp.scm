@@ -49,15 +49,15 @@
 ; All interesting operands (e.g. regs, mem) are `operand' objects.
 ; The following messages must be supported by operand objects.
 ; - get-mode      - return mode of operand
-; - cxmake-get    - return <cpp-expr> object containing operand's value
-; - gen-set-quiet - return string of C++ code to set operand's value (no tracing)
-; - gen-set-trace - return string of C++ code to set operand's value
+; - cppxmake-get    - return <cpp-expr> object containing operand's value
+; - gen-cpp-set-quiet - return string of C++ code to set operand's value (no tracing)
+; - gen-cpp-set-trace - return string of C++ code to set operand's value
 ;
 ; Instruction fields are refered to by name.
 ; (estate-owner estate) must be an instruction that has the field.
 ; Instruction ifields must have these methods:
 ; - get-mode
-; - cxmake-get
+; - cppxmake-get
 ;
 ; Conventions used in this file:
 ; - see rtl.scm
@@ -100,10 +100,10 @@
 
 ; Accessor fns
 
-(define cx:mode (elm-make-getter <cpp-expr> 'mode))
-(define cx:cpp-code (elm-make-getter <cpp-expr> 'cpp-code))
-(define cx:expr (elm-make-getter <cpp-expr> 'expr))
-(define cx:atlist (elm-make-getter <cpp-expr> 'atlist))
+(define cppx:mode (elm-make-getter <cpp-expr> 'mode))
+(define cppx:cpp-code (elm-make-getter <cpp-expr> 'cpp-code))
+(define cppx:expr (elm-make-getter <cpp-expr> 'expr))
+(define cppx:atlist (elm-make-getter <cpp-expr> 'atlist))
 
 ; Any object with attributes requires the get-atlist method.
 
@@ -119,48 +119,48 @@
  <cpp-expr> 'get-name
  (lambda (self)
    (string-append "(" (obj:str-name (elm-get self 'mode)) ") "
-      (cx:cpp self)))
+      (cppx:cpp self)))
 )
 
 ; Return C++ code to perform an assignment.
 ; NEWVAL is a <cpp-expr> object of the value to be assigned to SELF.
 
-(method-make! <cpp-expr> 'gen-set-quiet
+(method-make! <cpp-expr> 'gen-cpp-set-quiet
         (lambda (self estate mode indx selector newval)
-    (string-append "  " (cx:cpp self) " = " (cx:cpp newval) ";\n"))
+    (string-append "  " (cppx:cpp self) " = " (cppx:cpp newval) ";\n"))
 )
 
-(method-make! <cpp-expr> 'gen-set-trace
+(method-make! <cpp-expr> 'gen-cpp-set-trace
         (lambda (self estate mode indx selector newval)
-    (string-append "  " (cx:cpp self) " = " (cx:cpp newval) ";\n"))
+    (string-append "  " (cppx:cpp self) " = " (cppx:cpp newval) ";\n"))
 )
 
-; Return the C++ code of CX.
+; Return the C++ code of cppx.
 ; ??? This used to handle lazy evaluation of the expression.
-; Maybe it will again, so it's left in, as a cover fn to cx:cpp-code.
+; Maybe it will again, so it's left in, as a cover fn to cppx:cpp-code.
 
-(define (cx:cpp cx)
-  (cx:cpp-code cx)
+(define (cppx:cpp cppx)
+  (cppx:cpp-code cppx)
 )
 
 ; Main routine to create a <cpp-expr> node object.
 ; MODE is either the mode's symbol (e.g. 'QI) or a mode object.
 ; CODE is a string of C++ code.
 
-(define (cx:make mode code)
+(define (cppx:make mode code)
   (make <cpp-expr> (mode:lookup mode) code nil)
 )
 
-; Make copy of CX in new mode MODE.
+; Make copy of cppx in new mode MODE.
 ; MODE must be a <mode> object.
 
-(define (cx-new-mode mode cx)
-  (make <cpp-expr> mode (cx:cpp cx) (cx:atlist cx))
+(define (cppx-new-mode mode cppx)
+  (make <cpp-expr> mode (cppx:cpp cppx) (cppx:atlist cppx))
 )
 
-; Same as cx:make except with attributes.
+; Same as cppx:make except with attributes.
 
-(define (cx:make-with-atlist mode code atlist)
+(define (cppx:make-with-atlist mode code atlist)
   (make <cpp-expr> (mode:lookup mode) code atlist)
 )
 
@@ -171,24 +171,24 @@
 ; RTX environment support.
 
 (method-make!
- <rtx-temp> 'cxmake-get
+ <rtx-temp> 'cppxmake-get
  (lambda (self estate mode indx selector)
-   (cx:make mode (rtx-temp-value self)))
+    (cppx:make mode (rtx-temp-value self)))
 )
 
 (method-make!
- <rtx-temp> 'gen-set-quiet
+ <rtx-temp> 'gen-cpp-set-quiet
  (lambda (self estate mode indx selector src)
-   (string-append "  " (rtx-temp-value self) " = " (cx:cpp src) ";\n"))
+   (string-append "  " (rtx-temp-value self) " = " (cppx:cpp src) ";\n"))
 )
 
 (method-make!
- <rtx-temp> 'gen-set-trace
+ <rtx-temp> 'gen-cpp-set-trace
  (lambda (self estate mode indx selector src)
-   (string-append "  " (rtx-temp-value self) " = " (cx:cpp src) ";\n"))
+   (string-append "  " (rtx-temp-value self) " = " (cppx:cpp src) ";\n"))
 )
 
-(define (gen-temp-defs estate env)
+(define (gen-cpp-temp-defs estate env)
   (string-map (lambda (temp)
     (let ((temp-obj (cdr temp)))
       (string-append "  " (gen-mode-cpp-type (rtx-temp-mode temp-obj))
@@ -266,30 +266,33 @@
 
 (define (estate-make-for-rtl-cpp context owner extra-vars-alist
           semantic-type overrides)
-  (let ((generator (cond 
-          ((estate-semantic-type-cpp? semantic-type) 'rtl-cpp-generator)
-          ((estate-semantic-type-llvm? semantic-type) 'rtl-llvm-generator)
-          (else 'rtl-cpp-generator))))
+  (logit 3 "  Building <eval_state> for semantic-type: " semantic-type "\n")
+  ; (let ((generator (cond 
+  ;         ((estate-semantic-type-cpp? semantic-type) "rtl-cpp-generator")
+  ;         ((estate-semantic-type-llvm? semantic-type) "rtl-llvm-generator")
+  ;         (else "rtl-cpp-generator"))))
+    (logit 4 "    vmake for <rtl-cpp-eval-state> ...\n")
     (apply vmake
       (append!
         (list
-         <rtl-c-eval-state>
+         <rtl-cpp-eval-state>
          #:context context
          #:owner owner
          #:expr-fn (lambda (rtx-obj expr mode estate)
-               (generator rtx-obj))
+               (rtl-cpp-generator rtx-obj))
          #:env (rtx-env-init-stack1 extra-vars-alist)
+         #:semantic-type semantic-type
         )
       overrides)
     )
-  )
+  ;)
 
 )
 
 ; ============ SEMANTIC-TYPE: CPP ============
 
 (define (estate-make-for-normal-rtl-cpp extra-vars-alist overrides)
-  (estate-make-for-rtl-c
+  (estate-make-for-rtl-cpp
    #f ; FIXME: context
    #f ; FIXME: owner
    extra-vars-alist
@@ -301,7 +304,13 @@
 ; ESTATE is the current rtx evaluation state.
 
 (define (rtl-cpp-with-estate estate mode expr)
-  (cx:cpp (rtl-cpp-get estate mode (rtx-eval-with-estate expr mode estate)))
+  (logit 3 "    Returning C++ code for expression: " expr "...\n")
+  (rtx-eval-with-estate expr mode estate)
+  (logit 3 "\n\n\nEvaluated:\n")
+
+  (let ((inner (rtx-eval-with-estate expr mode estate)))
+    (cppx:cpp (rtl-cpp-get estate mode inner))
+  )
 )
 
 ; Translate parsed RTL expression X to a string of CPP code.
@@ -322,7 +331,9 @@
 (define (rtl-cpp mode x extra-vars-alist . overrides)
   ; ??? rtx-compile could return a closure, then we wouldn't have to
   ; pass EXTRA-VARS-ALIST to two routines here.
+  (logit 3 "Generating C++ code for " x " ...\n")
   (let ((estate (estate-make-for-normal-rtl-cpp extra-vars-alist overrides)))
+    (logit 3 "  <eval_state> is built.\n")
     (rtl-cpp-with-estate estate mode (rtx-compile #f x extra-vars-alist)))
 )
 
@@ -413,14 +424,14 @@
     (cond ((cpp-expr? src)
       (cond ((or  (mode:eq? 'VOID mode)
                   (mode:eq? 'DFLT mode)
-                  (mode:eq? (cx:mode src) mode))
+                  (mode:eq? (cppx:mode src) mode))
               src)
-            ((-rtx-mode-compatible? mode (cx:mode src))
-              (cx-new-mode mode src))
+            ((-rtx-mode-compatible? mode (cppx:mode src))
+              (cppx-new-mode mode src))
             (else
               (error (string-append "incompatible mode for "
-                        "(" (obj:name (cx:mode src)) " vs " (obj:name mode) ") in "
-                        "\"" (cx:c src) "\""
+                        "(" (obj:name (cppx:mode src)) " vs " (obj:name mode) ") in "
+                        "\"" (cppx:cpp src) "\""
                         ": ")
                       (obj:name mode)
               )
@@ -446,11 +457,11 @@
             ((mode:eq? 'DFLT mode)
             ; FIXME: If we fetch the mode here, operands can assume
             ; they never get called with "default mode".
-              (send src 'cxmake-get estate mode #f #f)
+              (send src 'cppxmake-get estate mode #f #f)
             )
             ((-rtx-mode-compatible? mode (op:mode src))
               (let ((mode (-rtx-lazy-sem-mode mode)))
-                (send src 'cxmake-get estate mode #f #f))
+                (send src 'cppxmake-get estate mode #f #f))
             )
             (else
               (error (string-append "operand " (obj:str-name src)
@@ -469,11 +480,11 @@
           )
           (cond 
             ((mode:eq? 'DFLT mode)
-              (send src 'cxmake-get estate (rtx-temp-mode src) #f #f)
+              (send src 'cppxmake-get estate (rtx-temp-mode src) #f #f)
             )
             ((-rtx-mode-compatible? mode (rtx-temp-mode src))
               (let ((mode (-rtx-lazy-sem-mode mode)))
-                (send src 'cxmake-get estate mode #f #f))
+                (send src 'cppxmake-get estate mode #f #f))
             )
             (else 
               (error (string-append "sequence temp " (rtx-temp-name src)
@@ -487,15 +498,15 @@
       ((integer? src)
         ; Default mode of string argument is INT.
         (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
-          (cx:make INT (number->string src))
-          (cx:make mode (number->string src)))
+          (cppx:make INT (number->string src))
+          (cppx:make mode (number->string src)))
       )
 
       ((string? src)
         ; Default mode of string argument is INT.
         (if (or (mode:eq? 'DFLT mode) (mode:eq? 'VOID mode))
-          (cx:make INT src)
-          (cx:make mode src))
+          (cppx:make INT src)
+          (cppx:make mode src))
       )
 
       (else (error "-rtl-cpp-get: invalid argument:" src))))
@@ -507,7 +518,7 @@
   (let ((result (-rtl-cpp-get estate mode src)))
     (logit 4 (spaces (estate-depth estate))
      "(rtl-cpp-get " (mode-real-name mode) " " (rtx-strdump src) ") => "
-     (cx:cpp result) "\n")
+     (cppx:cpp result) "\n")
     result)
 )
 
@@ -525,20 +536,22 @@
           (cond 
             ((cpp-expr? dest) dest)
             ((rtx? dest)
-              (rtx-eval-with-estate dest mode estate))
+              (begin (logit 4 "Evaluating dest.\n\n")(rtx-eval-with-estate dest mode estate)))
             (else
               (error "rtl-cpp-set-quiet: invalid dest:" dest))
           )
         ))
+    
+    (logit 4 "xdest: " xdest "\n\n")
     (if (not (object? xdest))
       (error "rtl-cpp-set-quiet: invalid dest:" dest))
     (let ((mode (if (mode:eq? 'DFLT mode)
           (-rtx-obj-mode xdest)
           (-rtx-lazy-sem-mode mode))))
       (assert (mode? mode))
-      (cx:make VOID 
-        (send xdest 'gen-set-quiet estate mode #f #f
-          (rtl-cpp-get estate mode src))
+      (logit 4 "Sending 'gen-cpp-set-quiet message to xdest:" xdest "\n\n")
+      (cppx:make 'VOID 
+        (send xdest 'gen-cpp-set-quiet estate mode #f #f (rtl-cpp-get estate mode src))
       )
     )
   )
@@ -567,8 +580,8 @@
           (-rtx-obj-mode xdest)
           (-rtx-lazy-sem-mode mode))))
       (assert (mode? mode))
-      (cx:make VOID 
-        (send xdest 'gen-set-trace estate mode #f #f
+      (cppx:make VOID 
+        (send xdest 'gen-cpp-set-trace estate mode #f #f
           (rtl-cpp-get estate mode src))
       )
     )
@@ -607,12 +620,12 @@
 (define (s-cpp-unop estate name cpp-op mode src semantic-type)
   (let* ((val (rtl-cpp-get estate mode src))
       ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-      (mode (cx:mode val))
+      (mode (cppx:mode val))
       (sem-mode (-rtx-sem-mode mode)))
 
     (if (string=? semantic-type "cpp")
-      (cx:make sem-mode
-        (string-append "(" cpp-op " (" (cx:cpp val) "))")
+      (cppx:make sem-mode
+        (string-append name "(" (cppx:cpp val) ")")
       )   ; cpp sem-type
       (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
     )
@@ -623,38 +636,39 @@
 ; If MODE is DFLT, use the mode of SRC1.
 
 (define (s-cpp-binop estate name cpp-op mode src1 src2 semantic-type)
+  (logit 4 "== SRC1 ==\n" src1 "\n== SRC2 ==\n" src2 "\n")
   (let* ((val1 (rtl-cpp-get estate mode src1))
       ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-      (mode (cx:mode val1))
+      (mode (cppx:mode val1))
       (sem-mode (-rtx-sem-mode mode))
       (val2 (rtl-cpp-get estate mode src2)))
 
+    (logit 4 "val1: " (cppx:cpp val1) " val2: " (cppx:cpp val2) "\n")
     (if (string=? semantic-type "cpp")
-      (cx:make sem-mode 
-        (string-append "((" (cx:cpp val1) ") " cpp-op " ("
-          (cx:cpp val2) "))")
+      (cppx:make sem-mode 
+        (string-append name "(" (cppx:cpp val1) ", " (cppx:cpp val2) ")")
       )   ; cpp sem-type
       (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
     )
   )
 )
 
-; Same as s-binop except there's a third argument which is always one bit.
+; Same as s-cpp-binop except there's a third argument which is always one bit.
 
 (define (s-cpp-binop-with-bit estate name mode src1 src2 src3 semantic-type)
   (let* ((val1 (rtl-cpp-get estate mode src1))
       ; Refetch mode in case it was DFLT and ensure unsigned->signed.
-      (mode (-rtx-sem-mode (cx:mode val1)))
+      (mode (-rtx-sem-mode (cppx:mode val1)))
       (val2 (rtl-cpp-get estate mode src2))
       (val3 (rtl-cpp-get estate 'BI src3)))
 
     (if (string=? semantic-type "cpp")
-      (cx:make mode
+      (cppx:make mode
         (string-append name
          " ("
-         (cx:cpp val1) ", "
-         (cx:cpp val2) ", "
-         (cx:cpp val3)
+         (cppx:cpp val1) ", "
+         (cppx:cpp val2) ", "
+         (cppx:cpp val3)
          ")")
       )   ; cpp sem-type
       (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
@@ -671,13 +685,13 @@
   (let* ((val1 (rtl-cpp-get estate mode src1))
       ; Refetch mode in case it was DFLT and ensure unsigned->signed
       ; [sign of operation is determined from operation name, not mode].
-      (mode (cx:mode val1))
+      (mode (cppx:mode val1))
       (sem-mode (-rtx-sem-mode mode))
       (val2 (rtl-cpp-get estate mode src2)))
 
     (if (string=? semantic-type "cpp")
-      (cx:make sem-mode 
-        (string-append "("
+      (cppx:make sem-mode 
+        (string-append name "("
           ; Ensure correct sign on purpose
           (cond
             ((equal? name "SRL") 
@@ -698,9 +712,8 @@
             )
             (else "(")
           )
-          (cx:cpp val1) ") "
-          cpp-op
-          " (" (cx:cpp val2) "))"
+          (cppx:cpp val1) "), "
+          (cppx:cpp val2) ")"
         )   
       )   ; cpp sem-type
       ""  ; llvm sem-type
@@ -721,11 +734,11 @@
     ; If this is the simulator and MODE is not a host mode, use a macro.
     ; ??? MODE here being the mode of SRC1.  Maybe later.
     (if (string=? semantic-type "cpp")
-      (cx:make (mode:lookup 'BI)
+      (cppx:make (mode:lookup 'BI)
         (string-append "((" 
-          (cx:cpp val1)
+          (cppx:cpp val1)
           ") " cpp-op
-          " (" (cx:cpp val2) "))")
+          " (" (cppx:cpp val2) "))")
       )   ; cpp sem-type
       (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
     )
@@ -739,14 +752,14 @@
       (mode (mode:lookup mode)))
 
     (if (string=? semantic-type "cpp") 
-      (cx:make mode
+      (cppx:make mode
         (string-append name "<"
           (gen-sem-mode-cpp-type (-rtx-sem-mode mode)) ">"
-          "(" (cx:cpp s) ")"
+          "(" (cppx:cpp s) ")"
         )
-      )
-    )   ; cpp sem-type
-    (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
+      ) ; cpp sem-type
+      (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
+    )
   )
 )
 
@@ -755,16 +768,15 @@
 (define (s-cpp-cmpop estate name cpp-op mode src1 src2 semantic-type)
   (let* ((val1 (rtl-cpp-get estate mode src1))
       ; Refetch mode in case it was DFLT.
-      (mode (cx:mode val1))
-      (val2 (rtlc-c-get estate mode src2)))
+      (mode (cppx:mode val1))
+      (val2 (rtl-cpp-get estate mode src2)))
 
     (if (string=? semantic-type "cpp")
-      (cx:make (mode:lookup 'BI)
-        (string-append "(("
-          (cx:cpp val1)
-          ") " cpp-op " ("
-          (cx:cpp val2)
-          "))"
+      (cppx:make (mode:lookup 'BI)
+        (string-append name "("
+          (cppx:cpp val1) ", "
+          (cppx:cpp val2)
+          ")"
         )
       )   ; cpp sem-type
       (error "LLVM IR code generation not yet implemented")  ; llvm sem-type
@@ -787,12 +799,12 @@
     (let ()
       (if (or (mode:eq? 'DFLT mode)
               (mode:eq? 'VOID mode))
-        (cx:make mode
-          (string-append "if (" (cx:cpp (rtl-cpp-get estate DFLT cond)) ")"
-              " {\n" (cx:cpp (rtl-cpp-get estate mode then)) "}"
+        (cppx:make mode
+          (string-append "if (" (cppx:cpp (rtl-cpp-get estate DFLT cond)) ")"
+              " {\n" (cppx:cpp (rtl-cpp-get estate mode then)) "}"
               (if (not (null? else))
                 (string-append " else {\n"
-                  (cx:cpp (rtl-cpp-get estate mode (car else)))
+                  (cppx:cpp (rtl-cpp-get estate mode (car else)))
                   "}\n"
                 )
                 "\n"
@@ -800,13 +812,13 @@
           )
         )
         (if (= (length else) 1)
-          (cx:make mode
+          (cppx:make mode
             (string-append "(("
-              (cx:cpp (rtl-cpp-get estate DFLT cond))
+              (cppx:cpp (rtl-cpp-get estate DFLT cond))
               ") ? ("
-              (cx:cpp (rtl-cpp-get estate mode then))
+              (cppx:cpp (rtl-cpp-get estate mode then))
               ") : ("
-              (cx:cpp (rtl-cpp-get estate mode (car else)))
+              (cppx:cpp (rtl-cpp-get estate mode (car else)))
               "))"
             )
           )
@@ -845,9 +857,9 @@
             ((result
               (string-append
                 if-part
-                (cx:cpp (rtl-cpp-get estate DFLT (caar cond-code-list)))
+                (cppx:cpp (rtl-cpp-get estate DFLT (caar cond-code-list)))
                 then-part
-                (cx:cpp (apply s-cpp-sequence
+                (cppx:cpp (apply s-cpp-sequence
                 (cons estate
                   (cons mode
                   (cons nil
@@ -855,13 +867,13 @@
              (ccl (cdr cond-code-list)))
     
           (cond 
-            ((null? ccl) (cx:make mode result))
+            ((null? ccl) (cppx:make mode result))
             ((eq? (caar ccl) 'else)
-              (cx:make mode
+              (cppx:make mode
                 (string-append
                   result
                   else-part
-                  (cx:cpp (apply s-cpp-sequence
+                  (cppx:cpp (apply s-cpp-sequence
                     (cons estate
                     (cons mode
                     (cons nil
@@ -874,9 +886,9 @@
               (loop (string-append
                   result
                   elseif-part
-                  (cx:cpp (rtl-cpp-get estate DFLT (caar ccl)))
+                  (cppx:cpp (rtl-cpp-get estate DFLT (caar ccl)))
                   then-part
-                  (cx:cpp (apply s-cpp-sequence
+                  (cppx:cpp (apply s-cpp-sequence
                   (cons estate
                     (cons mode
                     (cons nil
@@ -908,10 +920,10 @@
 ; Utility of s-case to handle a void result.
 
 (define (s-cpp-case-vm estate test case-list)
-  (cx:make VOID
+  (cppx:make VOID
     (string-append
       "  switch ("
-      (cx:cpp (rtl-cpp-get estate DFLT test))
+      (cppx:cpp (rtl-cpp-get estate DFLT test))
       ")\n"
       "  {\n"
       (string-map 
@@ -928,7 +940,7 @@
                 (else
                   (-gen-case-prefix caseval))
               )
-              (cx:cpp (apply s-cpp-sequence
+              (cppx:cpp (apply s-cpp-sequence
                 (cons estate (cons VOID (cons nil code)))))
               "    break;\n"
             )
@@ -969,9 +981,9 @@
               ""
               " || "
             )
-            (cx:cpp (rtl-cpp-get estate mode test))
+            (cppx:cpp (rtl-cpp-get estate mode test))
             " == "
-            (cx:cpp (rtl-cpp-get estate mode case))
+            (cppx:cpp (rtl-cpp-get estate mode case))
           )
           (cdr cases)
         )
@@ -996,7 +1008,7 @@
             if-part
             (-gen-non-vm-case-test estate mode test (caar case-list))
             then-part
-            (cx:cpp (apply s-cpp-sequence
+            (cppx:cpp (apply s-cpp-sequence
               (cons estate
               (cons mode
               (cons nil
@@ -1004,13 +1016,13 @@
         (cl (cdr case-list)))
 
       (cond 
-        ((null? cl) (cx:make mode result))
+        ((null? cl) (cppx:make mode result))
         ((eq? (caar cl) 'else)
-          (cx:make mode
+          (cppx:make mode
             (string-append
               result
               else-part
-              (cx:cpp (apply s-cpp-sequence
+              (cppx:cpp (apply s-cpp-sequence
                 (cons estate
                 (cons mode
                 (cons nil
@@ -1025,7 +1037,7 @@
               elseif-part
               (-gen-non-vm-case-test estate mode test (caar cl))
               then-part
-              (cx:cpp (apply s-cpp-sequence
+              (cppx:cpp (apply s-cpp-sequence
                 (cons estate
                 (cons mode
                 (cons nil
@@ -1068,7 +1080,7 @@
 (define (-cpp-par-new-temp! mode)
   (set! -cpp-par-temp-list
     (cons 
-      (cx:make mode 
+      (cppx:make mode 
         (string-append "temp"
           (number->string
             (length -cpp-par-temp-list)))
@@ -1098,8 +1110,8 @@
     (string-map 
       (lambda (temp) 
         (string-append 
-          (gen-sem-mode-cpp-type (cx:mode temp))
-          " " (cx:cpp temp) ";"
+          (gen-sem-mode-cpp-type (cppx:mode temp))
+          " " (cppx:cpp temp) ";"
         )
       ) 
       temp-list
@@ -1199,7 +1211,7 @@
 
         ; Initialize -par-temp-list for -par-replace-set-srcs.
         (set! -cpp-par-temp-list temps)
-        (cx:make VOID
+        (cppx:make VOID
           (string-append
             ; FIXME: do {} while (0); doesn't get "optimized out"
             ; internally by gcc, meaning two labels and a loop are
@@ -1231,7 +1243,7 @@
       (if (or (mode:eq? 'DFLT mode)
               (mode:eq? 'VOID mode))
         
-        (cx:make mode
+        (cppx:make mode
           (string-append 
             ; FIXME: do {} while (0); doesn't get "optimized out"
             ; internally by gcc, meaning two labels and a loop are
@@ -1239,7 +1251,7 @@
             ; big files and can cause gcc to require *lots* of memory.
             ; So let's try just {} ...
             "{\n"
-            (gen-temp-defs estate env)
+            (gen-cpp-temp-defs estate env)
             (string-map 
               (lambda (e)
                 (rtl-cpp-with-estate estate DFLT e)
@@ -1249,11 +1261,11 @@
             "}\n"
           )
         )
-        (cx:make mode
+        (cppx:make mode
           (string-append
             ; Don't use GCC extension unless necessary.
             (if (rtx-env-empty? env) "(" "({ ")
-            (gen-temp-defs estate env)
+            (gen-cpp-temp-defs estate env)
             (string-drop 2
               (string-map
                 (lambda (e)
@@ -1295,6 +1307,24 @@
       (lambda ,args ,@(cons expr rest))))
 )
 
+; ============ SEMANTIC-TYPE: CPP ============
+; Emit CPP code for each rtx function.
+
+; Table mapping rtx function to CPP generator.
+
+(define -rtl-cpp-gen-table #f)
+
+; Return the CPP generator for <rtx-func> F.
+
+(define (rtl-cpp-generator f)
+  (vector-ref -rtl-cpp-gen-table (rtx-num f))
+)
+
+(define (rtl-cpp-init!)
+  (set! -rtl-cpp-gen-table (rtl-cpp-build-table))
+  *UNSPECIFIED*
+)
+
 ; This file portion is one big function to return the rtl->cpp
 ; lookup table.
 ; SEMANTIC-TYPE is a string specifying the desired semantic type
@@ -1308,24 +1338,26 @@
 
 (define-fn error (estate mode semantic-type message)
   ; NOT YET IMPLEMENTED. REQUIRES C-CALL SUPPORT
-  (cx:make mode ";") ; Returns empty statement
+  (cppx:make mode ";") ; Returns empty statement
 )
 
 ; Enum support
 
 (define-fn enum (estate option mode name)
-  (cx:make mode (string-upcase (sanitize-elm-name name)))
+  (cppx:make mode (string-upcase (sanitize-elm-name name)))
 )
 
 ; Instruction field support.
 
 (define-fn ifield (estate options mode ifld-name)
-  (cx:make 'UINT (sanitize-elm-name ifld-name))
+  (cppx:make 'UINT (sanitize-elm-name ifld-name))
 )
 
 ; Operand support
 
 (define-fn operand (estate options mode object-or-name)
+  (logit 4 "object-or-name: " object-or-name "\n"
+    "operand? " (operand? object-or-name) "\n")
   (cond 
     ((operand? object-or-name) object-or-name)
     ((symbol? object-or-name)
@@ -1370,11 +1402,13 @@
 )
 
 (define-fn local (estate options mode object-or-name)
+  (logit 3 "(local) generator. Mode: " mode 
+    " object-or-name: " object-or-name "\n")
   (cond 
     ((rtx-temp? object-or-name) object-or-name)
     ((symbol? object-or-name)
       (let ((object (rtx-temp-lookup (estate-env estate) object-or-name)))
-        
+        (logit 3 "  object: " object "\n")
         (if (not object)
           (context-error (estate-context estate)
             "undefined local" object-or-name)
@@ -1423,7 +1457,7 @@
 (define-fn ref (estate options mode name)
   (if (not (insn? (estate-owner estate)))
     (error "ref: not processing an insn"))
-  (cx:make 'UINT
+  (cppx:make 'UINT
     (string-append
       "(referenced & (1 << "
       (number->string
@@ -1435,11 +1469,11 @@
 
 ; ??? Maybe this should return an operand object.
 (define-fn index-of (estate options mode op)
-  (send (op:index (rtx-eval-with-estate op 'DFLT estate)) 'cxmake-get estate 'DFLT)
+  (send (op:index (rtx-eval-with-estate op 'DFLT estate)) 'cppxmake-get estate 'DFLT)
 )
 
 (define-fn clobber (estate options mode object)
-  (cx:make VOID "; /*clobber*/\n")
+  (cppx:make VOID "; /*clobber*/\n")
 )
 
 ; Is this even useful for our translators?
@@ -1473,21 +1507,21 @@
    (rtx-eval-with-estate rtx mode (estate-with-modifiers estate `((#:delay ,new-delay)))))))
 
     ;; not in sid-land
-  (else (s-sequence (estate-with-modifiers estate '((#:delay))) VOID '() rtx)))
+  (else (s-cpp-sequence (estate-with-modifiers estate '((#:delay))) VOID '() rtx)))
 )
 
 (define-fn skip (estate options mode yes?)
-  (send pc 'cxmake-skip estate yes?)
+  (send pc 'cppxmake-skip estate yes?)
 )
 
 (define-fn eq-attr (estate options mode obj attr-name value)
   ; NOT YET IMPLEMENTED. Is it necessary?
-  (cx:make 'INT ";") ; Returns empty statement
+  (cppx:make 'INT ";") ; Returns empty statement
 )
 
 (define-fn attr (estate options mode owner attr-name)
   ; NOT YET IMPLEMENTED. Is it necessary?
-  (cx:make 'INT ";") ; Returns empty statement
+  (cppx:make 'INT ";") ; Returns empty statement
 )
 
 (define-fn const (estate options mode c)
@@ -1495,7 +1529,7 @@
   (if (mode:eq? 'DFLT mode)
       (set! mode 'INT))
   (let ((mode (mode:lookup mode)))
-    (cx:make mode
+    (cppx:make mode
       (cond 
         ((and (<= #x-80000000 c) (> #x80000000 c))
           (number->string c))
@@ -1511,16 +1545,16 @@
 
 (define-fn join (estate options out-mode in-mode arg1 . arg-rest)
   ; NOT YET IMPLEMENTED. 
-  (cx:make 'VOID ";") ; Returns empty statement
+  (cppx:make 'VOID ";") ; Returns empty statement
 )
 
 (define-fn subword (estate options mode value word-num)
   ; NOT YET IMPLEMENTED. 
-  (cx:make 'VOID ";") ; Returns empty statement
+  (cppx:make 'VOID ";") ; Returns empty statement
 )
 
 (define-fn c-code (estate options mode text)
-  (cx:make mode text)
+  (cppx:make mode text)
 )
 
 (define-fn c-call (estate options mode name . args)
@@ -1532,10 +1566,11 @@
 )
 
 (define-fn nop (estate options mode)
-  (cx:make VOID "((void) 0); /*nop*/\n")
+  (cppx:make VOID "((void) 0); /*nop*/\n")
 )
 
 (define-fn set (estate options mode dst src)
+  (logit 3 "(set) generator. Insn?: " (insn? (estate-owner estate)) "\n")
   (if (insn? (estate-owner estate))
     (rtl-cpp-set-trace estate mode dst (rtl-cpp-get estate mode src))
     (rtl-cpp-set-quiet estate mode dst (rtl-cpp-get estate mode src)))
@@ -1546,26 +1581,26 @@
 )
 
 (define-fn neg (estate options mode s1)
-  (s-cpp-unop estate "neg" "-" mode s1 "cpp")
+  (s-cpp-unop estate "Neg" "-" mode s1 "cpp")
 )
 
 (define-fn abs (estate options mode s1)
-  (s-cpp-unop estate "abs" #f mode s1 "cpp")
+  (s-cpp-unop estate "Abs" #f mode s1 "cpp")
 )
 
 (define-fn inv (estate options mode s1)
-  (s-cpp-unop estate "inv" "~" mode s1 "cpp")
+  (s-cpp-unop estate "Inv" "~" mode s1 "cpp")
 )
 
 (define-fn not (estate options mode s1)
-  (s-cpp-unop estate "not" "!" mode s1 "cpp")
+  (s-cpp-unop estate "Not" "!" mode s1 "cpp")
 )
 
 (define-fn add (estate options mode s1 s2)
-  (s-cpp-binop estate "add" "+" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Add" "+" mode s1 s2 "cpp")
 )
 (define-fn sub (estate options mode s1 s2)
-  (s-cpp-binop estate "sub" "-" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Sub" "-" mode s1 s2 "cpp")
 )
 
 ; WRONG APPROACH for BINARY OPERATIONS. BETTER TO USE TEMPLATE
@@ -1574,226 +1609,192 @@
 ; COMPLEX OPERATIONS LIKE SQRT, SIN ETC...
 
 (define-fn addc (estate options mode s1 s2 s3)
-  (s-cpp-binop-with-bit estate "addC" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "AddC" mode s1 s2 s3 "cpp")
 )
 (define-fn add-cflag (estate options mode s1 s2 s3)
-  (s-binop-with-bit estate "addCF" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "AddCF" mode s1 s2 s3 "cpp")
 )
 (define-fn add-oflag (estate options mode s1 s2 s3)
-  (s-binop-with-bit estate "addOF" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "AddOF" mode s1 s2 s3 "cpp")
 )
 (define-fn subc (estate options mode s1 s2 s3)
-  (s-binop-with-bit estate "subC" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "SubC" mode s1 s2 s3 "cpp")
 )
 (define-fn sub-cflag (estate options mode s1 s2 s3)
-  (s-binop-with-bit estate "subCF" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "SubCF" mode s1 s2 s3 "cpp")
 )
 (define-fn sub-oflag (estate options mode s1 s2 s3)
-  (s-binop-with-bit estate "subOF" mode s1 s2 s3 "cpp")
+  (s-cpp-binop-with-bit estate "SubOF" mode s1 s2 s3 "cpp")
 )
 
 (define-fn mul (estate options mode s1 s2)
-  (s-binop estate "mul" "*" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Mul" "*" mode s1 s2 "cpp")
 )
 (define-fn div (estate options mode s1 s2)
-  (s-binop estate "div" "/" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Div" "/" mode s1 s2 "cpp")
 )
 (define-fn udiv (estate options mode s1 s2)
-  (s-binop estate "udiv" "/" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Div" "/" mode s1 s2 "cpp")
 )
 (define-fn mod (estate options mode s1 s2)
-  (s-binop estate "mod" "%" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Mod" "%" mode s1 s2 "cpp")
 )
 (define-fn umod (estate options mode s1 s2)
-  (s-binop estate "umod" "%" mode s1 s2 "cpp")
+  (s-cpp-binop estate "Mod" "%" mode s1 s2 "cpp")
 )
 
 (define-fn sqrt (estate options mode s1)
-  (s-unop estate "SQRT" #f mode s1)
+  (s-unop estate "Sqrt" #f mode s1 "cpp")
 )
 (define-fn cos (estate options mode s1)
-  (s-unop estate "COS" #f mode s1)
+  (s-unop estate "Cos" #f mode s1 "cpp")
 )
 (define-fn sin (estate options mode s1)
-  (s-unop estate "SIN" #f mode s1)
+  (s-unop estate "Sin" #f mode s1 "cpp")
 )
 
 (define-fn min (estate options mode s1 s2)
-  (s-binop estate "MIN" #f mode s1 s2)
+  (s-cpp-binop estate "Min" #f mode s1 s2 "cpp")
 )
 (define-fn max (estate options mode s1 s2)
-  (s-binop estate "MAX" #f mode s1 s2)
+  (s-cpp-binop estate "Max" #f mode s1 s2 "cpp")
 )
 (define-fn umin (estate options mode s1 s2)
-  (s-binop estate "UMIN" #f mode s1 s2)
+  (s-cpp-binop estate "Min" #f mode s1 s2 "cpp")
 )
 (define-fn umax (estate options mode s1 s2)
-  (s-binop estate "UMAX" #f mode s1 s2)
+  (s-cpp-binop estate "Max" #f mode s1 s2 "cpp")
 )
 
 (define-fn and (estate options mode s1 s2)
-  (s-binop estate "AND" "&" mode s1 s2)
+  (s-cpp-binop estate "And" "&" mode s1 s2 "cpp")
 )
 (define-fn or (estate options mode s1 s2)
-  (s-binop estate "OR" "|" mode s1 s2)
+  (s-cpp-binop estate "Or" "|" mode s1 s2 "cpp")
 )
 (define-fn xor (estate options mode s1 s2)
-  (s-binop estate "XOR" "^" mode s1 s2)
+  (s-cpp-binop estate "Xor" "^" mode s1 s2 "cpp")
 )
 
 (define-fn sll (estate options mode s1 s2)
-  (s-shop estate "SLL" "<<" mode s1 s2)
+  (s-cpp-shop estate "Sll" "<<" mode s1 s2 "cpp")
 )
 (define-fn srl (estate options mode s1 s2)
-  (s-shop estate "SRL" ">>" mode s1 s2)
+  (s-cpp-shop estate "Srl" ">>" mode s1 s2 "cpp")
 )
 (define-fn sra (estate options mode s1 s2)
-  (s-shop estate "SRA" ">>" mode s1 s2)
+  (s-cpp-shop estate "Sra" ">>" mode s1 s2 "cpp")
 )
 (define-fn ror (estate options mode s1 s2)
-  (s-shop estate "ROR" #f mode s1 s2)
+  (s-cpp-shop estate "Ror" #f mode s1 s2 "cpp")
 )
 (define-fn rol (estate options mode s1 s2)
-  (s-shop estate "ROL" #f mode s1 s2)
+  (s-cpp-shop estate "Rol" #f mode s1 s2 "cpp")
 )
 
 (define-fn andif (estate options mode s1 s2)
-  (s-boolifop estate "ANDIF" "&&" s1 s2)
+  (s-cpp-boolifop estate "AndIf" "&&" s1 s2 "cpp")
 )
 (define-fn orif (estate options mode s1 s2)
-  (s-boolifop estate "ORIF" "||" s1 s2)
+  (s-cpp-boolifop estate "OrIf" "||" s1 s2 "cpp")
 )
 
 (define-fn ext (estate options mode s1)
-  (s-convop estate "EXT" mode s1)
+  (s-cpp-convop estate "ExtTo" mode s1 "cpp")
 )
 (define-fn zext (estate options mode s1)
-  (s-convop estate "ZEXT" mode s1)
+  (s-cpp-convop estate "ZExtTo" mode s1 "cpp")
 )
 (define-fn trunc (estate options mode s1)
-  (s-convop estate "TRUNC" mode s1)
+  (s-cpp-convop estate "TruncTo" mode s1 "cpp")
 )
 (define-fn fext (estate options mode s1)
-  (s-convop estate "FEXT" mode s1)
+  (s-cpp-convop estate "ExtTo" mode s1 "cpp")
 )
 (define-fn ftrunc (estate options mode s1)
-  (s-convop estate "FTRUNC" mode s1)
+  (s-cpp-convop estate "TruncTo" mode s1 "cpp")
 )
 (define-fn float (estate options mode s1)
-  (s-convop estate "FLOAT" mode s1)
+  (s-cpp-convop estate "ExtTo" mode s1 "cpp")
 )
 (define-fn ufloat (estate options mode s1)
-  (s-convop estate "UFLOAT" mode s1)
+  (s-cpp-convop estate "ExtTo" mode s1 "cpp")
 )
 (define-fn fix (estate options mode s1)
-  (s-convop estate "FIX" mode s1)
+  (s-cpp-convop estate "FIX" mode s1 "cpp")
 )
 (define-fn ufix (estate options mode s1)
-  (s-convop estate "UFIX" mode s1)
+  (s-cpp-convop estate "UFIX" mode s1 "cpp")
 )
 
 (define-fn eq (estate options mode s1 s2)
-  (s-cmpop estate 'eq "==" mode s1 s2)
+  (s-cpp-cmpop estate "Eq" "==" mode s1 s2 "cpp")
 )
 (define-fn ne (estate options mode s1 s2)
-  (s-cmpop estate 'ne "!=" mode s1 s2)
+  (s-cpp-cmpop estate "Ne" "!=" mode s1 s2 "cpp")
 )
 
 (define-fn lt (estate options mode s1 s2)
-  (s-cmpop estate 'lt "<" mode s1 s2)
+  (s-cpp-cmpop estate "Lt" "<" mode s1 s2 "cpp")
 )
 (define-fn le (estate options mode s1 s2)
-  (s-cmpop estate 'le "<=" mode s1 s2)
+  (s-cpp-cmpop estate "Le" "<=" mode s1 s2 "cpp")
 )
 (define-fn gt (estate options mode s1 s2)
-  (s-cmpop estate 'gt ">" mode s1 s2)
+  (s-cpp-cmpop estate "Gt" ">" mode s1 s2 "cpp")
 )
 (define-fn ge (estate options mode s1 s2)
-  (s-cmpop estate 'ge ">=" mode s1 s2)
+  (s-cpp-cmpop estate "Ge" ">=" mode s1 s2 "cpp")
 )
 
 (define-fn ltu (estate options mode s1 s2)
-  (s-cmpop estate 'ltu "<" mode s1 s2)
+  (s-cpp-cmpop estate "Lt" "<" mode s1 s2 "cpp")
 )
 (define-fn leu (estate options mode s1 s2)
-  (s-cmpop estate 'leu "<=" mode s1 s2)
+  (s-cpp-cmpop estate "Le" "<=" mode s1 s2 "cpp")
 )
 (define-fn gtu (estate options mode s1 s2)
-  (s-cmpop estate 'gtu ">" mode s1 s2)
+  (s-cpp-cmpop estate "Gt" ">" mode s1 s2 "cpp")
 )
 (define-fn geu (estate options mode s1 s2)
-  (s-cmpop estate 'geu ">=" mode s1 s2)
+  (s-cpp-cmpop estate "Ge" ">=" mode s1 s2 "cpp")
 )
 
 (define-fn member (estate options mode value set)
-  ; FIXME: Multiple evalutions of VALUE.
-  (let ((c-value (rtl-c-get estate 'DFLT value))
-  (set (rtx-number-list-values set)))
-    (let loop ((set (cdr set))
-         (code (string-append "(" (cx:c c-value)
-            " == "
-            (gen-integer (car set))
-            ")")))
-      (if (null? set)
-    (cx:make (mode:lookup 'BI) (string-append "(" code ")"))
-    (loop (cdr set)
-    (string-append code
-             " || ("
-             (cx:c c-value)
-             " == "
-             (gen-integer (car set))
-             ")")))))
+  ; NOT YET IMPLEMENTED. 
+  (cppx:make 'VOID ";") ; Returns empty statement
 )
 
 (define-fn if (estate options mode cond then . else)
-  (apply s-if (append! (list estate mode cond then) else))
+  (apply s-cpp-if (append! (list estate mode "cpp" cond then) else))
 )
 
 (define-fn cond (estate options mode . cond-code-list)
-  (apply s-cond (cons estate (cons mode cond-code-list)))
+  (apply s-cpp-cond (cons estate (cons mode (cons "cpp" cond-code-list))))
 )
 
 (define-fn case (estate options mode test . case-list)
-  (apply s-case (cons estate (cons mode (cons test case-list))))
+  (apply s-cpp-case (cons estate (cons mode (cons "cpp" (cons test case-list)))))
 )
 
 (define-fn parallel (estate options mode ignore expr . exprs)
-  (apply s-parallel (cons estate (cons expr exprs)))
+  (apply s-cpp-parallel (cons estate (cons "cpp" (cons expr exprs))))
 )
 
 (define-fn sequence (estate options mode locals expr . exprs)
-  (apply s-sequence
-   (cons estate (cons mode (cons locals (cons expr exprs)))))
+  (apply s-cpp-sequence
+   (cons estate (cons mode (cons "cpp" (cons locals (cons expr exprs))))))
 )
 
 (define-fn closure (estate options mode expr env)
   ; ??? estate-push-env?
-  (rtl-c-with-estate (estate-new-env estate env) DFLT expr)
+  (rtl-cpp-with-estate (estate-new-env estate env) DFLT expr)
 )
 
 ; The result is the rtl->CPP generator table.
 table
 )) ; End of rtl-cpp-build-table
 
-; ============ SEMANTIC-TYPE: CPP ============
-; Emit CPP code for each rtx function.
-
-; Table mapping rtx function to CPP generator.
-
-(define -rtl-cpp-gen-table #f)
-
-; Return the CPP generator for <rtx-func> F.
-
-(define (rtl-cpp-generator f)
-  (vector-ref -rtl-cpp-gen-table (rtx-num f))
-)
-
-(define (rtl-cpp-init!)
-  (set! -rtl-cpp-gen-table (rtl-cpp-build-table "cpp"))
-  *UNSPECIFIED*
-)
-
-; TODO: Populate cpp-gen-table
 ; TODO: Add a call to cpp-gen-table initialization in
 ;       cgen-ir.scm
 

@@ -1014,6 +1014,7 @@
 
       (let* ((rtx-obj (rtx-lookup (car expr)))
 	     (fn ((estate-expr-fn estate) rtx-obj expr mode estate)))
+      (logit 4 "Fn: " fn "\nExpr: " expr "\n")
 	(if fn
 	    (if (procedure? fn)
 		(apply fn (cons estate (cdr expr)))

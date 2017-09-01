@@ -11,7 +11,7 @@
       (string-append namespace "::")
       ""
     )
-    "parseSfmt(uint8_t *code)" 
+    "parseSfmt(uint32_t rawInstruction, CgenIRContext &context)" 
   )
 ) 
 
@@ -73,7 +73,7 @@
           indent "    if (("
           ; We are missing to check adata-integral-insn? CURRENT-ARRCH
           ; Don't know if we need it in our IR gen application
-          "code"
+          "baseRawInstruction"
           " & 0x" (number->hex (insn-base-mask insn)) ") == 0x" (number->hex (insn-value insn)) ") {\n"
           indent "      insn = std::make_unique<" 
             (gen-insn-class-name insn) ">{opcode};\n"
@@ -197,6 +197,109 @@
         (loop (cdr entries) result)))))
 )
 
+; Return C/C++ code that fetches the desired decode bits from C value VAL.
+; SIZE is the size in bits of val (the MSB is 1 << (size - 1)) which we
+; treat as bitnum 0.
+; BITNUMS must be monotonically increasing.
+; LSB0? is non-#f if bit number 0 is the least significant bit.
+; FIXME: START may not be handled right in words beyond first.
+;
+; ENTIRE-VAL is passed as a hack for cgen 1.1 which would previously generate
+; negative shifts.  FIXME: Revisit for 1.2.
+;
+; e.g. (-gen-decode-bits '(0 1 2 3 8 9 10 11) 0 16 "insn" #f)
+; --> "(((insn >> 8) & 0xf0) | ((insn >> 4) & 0xf))"
+; FIXME: The generated code has some inefficiencies in edge cases.  Later.
+
+(define (-gen-decode-bits bitnums start size val entire-val lsb0?)
+
+  ; Compute a list of lists of three numbers:
+  ; (first bitnum in group, position in result (0=LSB), bits in result)
+
+  (let 
+    ((groups
+      ; POS = starting bit position of current group.
+      ; COUNT = number of bits in group.
+      ; Work from least to most significant bit so reverse bitnums.
+      (let loop ((result nil) (pos 0) (count 0) (bitnums (reverse bitnums)))
+      ;(display (list result pos count bitnums)) (newline)
+        (if (null? bitnums)
+          result
+          (if 
+            (or 
+              (= (length bitnums) 1)
+              ; Are numbers not next to each other?
+              (not 
+                (= 
+                  (- (car bitnums) (if lsb0? -1 1))
+                  (cadr bitnums)
+                )
+              )
+            )
+            (loop 
+              (cons (list (car bitnums) pos (+ 1 count)) result)
+              (+ pos count 1) 0
+              (cdr bitnums)
+            )
+            (loop result
+              pos (+ 1 count)
+              (cdr bitnums)
+            )
+          )
+        )
+      )
+    ))
+    (string-append
+      ; While we could just always emit "(0" to handle the case of an empty set,
+      ; keeping the code more readable for the normal case is important.
+      (if (< (length groups) 1)
+        "(0"
+        "("
+      )
+      (string-drop 3
+        (string-map
+        (lambda (group)
+          (let* 
+            (
+              (first (car group))
+              (pos (cadr group))
+              (bits (caddr group))
+            ; Difference between where value is and where
+            ; it needs to be.
+              (shift 
+                (- 
+                  (if lsb0?
+                    (- first bits -1)
+                    (- (+ start size) (+ first bits))
+                  )
+                  pos)
+              )
+            )
+            ; FIXME: There should never be a -ve shift here,
+            ; but it can occur on the m32r.  Compensate here
+            ; with hack and fix in 1.2.
+            (if (< shift 0)
+              (begin
+                (set! val entire-val)
+                (set! shift (+ shift size))
+              )
+            )
+            ; END-FIXME
+            (string-append
+              " | ((" val " >> " (number->string shift)
+              ") & ("
+              (number->string (- (integer-expt 2 bits) 1))
+              " << " (number->string pos) "))"
+            )
+          )
+        )
+        groups)
+      )
+     ")"
+    )
+  )
+)
+
 ; Generates switch statement to decode TABLE-GUTS.
 ; SWITCH-NUM is for compatibility with the computed goto decoder and
 ; isn't used. (??? So can be removed for LLVM IR purposes?)
@@ -211,6 +314,25 @@
   ; For entries that are a single insn, we are done, otherwise recurse.
 
   (string-list
+    (if (not (= startbit (dtable-guts-startbit table-guts)))
+      (begin
+        (set! startbit (dtable-guts-startbit table-guts))
+        (set! decode-bitsize (dtable-guts-bitsize table-guts))
+        ; FIXME: Bits may get fetched again during extraction.
+        (string-append indent "unsigned int opcode;\n"
+          indent "/* Must fetch more bits.  */\n"
+          indent "rawInstruction = "
+          (gen-ir-ifetch "pc" startbit decode-bitsize)
+          ";\n"
+          indent "opcode = ")
+      )
+      (string-append indent "unsigned int opcode = "))
+    (-gen-decode-bits (dtable-guts-bitnums table-guts)
+      (dtable-guts-startbit table-guts)
+      (dtable-guts-bitsize table-guts)
+      "rawInstruction" "entireRawInstruction" lsb0?
+    )
+   ";\n"
     indent "switch (opcode) {\n"
     
     (let loop ((entries (-decode-sort-entries (dtable-guts-entries table-guts)))
@@ -335,16 +457,17 @@
       (string-write
 (-gen-decoder-cpp-includes)
       "\
-std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *code) {
+std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, CgenIRContext& context) {
 
   auto *insn = std::make_unique<Instruction>{};
+  uint32_t rawInstruction = baseRawInstruction;
 
 "
   decode-code
 "\
     
   // Demand extracting fields to derived class strategy method
-  insn->parseSfmt(code); 
+  insn->parseSfmt(rawInstruction, context); 
   return insn;
 }
 "
@@ -359,7 +482,7 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
   (string-append
     var-name " = "
     (gen-ir-ifetch "pc" offset bits)
-    ";"
+    ";\n"
   )
 )
 
@@ -620,7 +743,8 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
             (-extract-chunk (car chunk-spec)
                 (cdr chunk-spec)
                 (string-append
-                 "word_"
+                 indent
+                 "uint32_t word_"
                  (number->string chunk-num))
             ))
             chunk-specs
@@ -635,14 +759,14 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
           ; Dispatching on a method works better, as would a generic fn.
           (if (multi-ifield? f)
             (gen-ir-multi-ifld-extract
-              f indent base-length total-length "insn"
+              f indent base-length total-length "rawInstruction"
               (-gen-extract-beyond-var-list base-length "word_"
                 chunk-specs
                 (current-arch-insn-lsb0?)
               )
             )
             (gen-ir-ifld-extract
-              f indent base-length total-length "insn"
+              f indent base-length total-length "rawInstruction"
               (-gen-extract-beyond-var-list base-length "word_"
                 chunk-specs
                 (current-arch-insn-lsb0?)
@@ -705,6 +829,19 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
   )
 )
 
+; Returns the C++ code to drive the translation process.
+
+(define (-gen-decoder-translate-proc)
+  (string-write
+    "\
+void translate(CgenIRContext& context) {
+  auto baseRawInstruction = context.readWord(0);
+  auto insn = Instruction::make(baseRawInstruction, context);
+}\n
+"
+  )
+)
+
 ; TODO: Comment
 
 (define (-gen-base-class-insn) 
@@ -713,7 +850,7 @@ std::unique_ptr<Instruction> Instruction::make(unsigned int opcode, uint8_t *cod
     "\
 class Instruction {
 public:
-  static std::unique_ptr<Instruction> make(unsigned int opcode, uint8_t *code);
+  static std::unique_ptr<Instruction> make(unsigned int opcode, uint32_t rawInstruction, uint8_t *pc);
   virtual " (-gen-parse-sfmt-proto #f) " = 0;\
 
 private:
@@ -807,6 +944,7 @@ protected:
 
   (string-write
     (lambda () (-gen-decoder-h-includes))
+    (lambda () (-gen-decoder-translate-proc))
     (lambda () (-gen-all-class-sfmts))
     (lambda () (-gen-base-class-insn))
     (lambda () (-gen-all-class-insns))

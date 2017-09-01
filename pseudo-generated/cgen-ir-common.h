@@ -2,12 +2,26 @@
 #include <cmath>
 #include <cstdint>
 
-template <typename SizeType>
-SizeType getInstruction(void *someDataStructure, uint8_t *address) {
-  auto size = sizeof(SizeType); // How much to shift
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
 
-  // doSomething(size, address);
-}
+class CgenIRContext {
+public:
+  CgenIRContext(uint8_t *pc);
+  template <typename T> T readWord(size_t offset) {
+    auto size = sizeof(T);
+
+    // Do something to get the word
+  }
+
+private:
+  uint8_t *pc;
+  llvm::IRBuilder<> builder;
+  llvm::Module m;
+};
 
 template <typename T>
 inline T extractLSB0(T val, unsigned total, unsigned start, unsigned length) {
@@ -127,30 +141,21 @@ template <typename T> inline unsigned char SubOF(T a, T b, unsigned char c) {
 
 /* More complex operations */
 
-template <typename T>
-inline T Max(T x, T y) {
-	return std::max(x, y);
-}
+template <typename T> inline T Max(T x, T y) { return std::max(x, y); }
 
-template <typename T>
-inline T Min(T x, T y) {
-	return std::min(x, y);
-}
+template <typename T> inline T Min(T x, T y) { return std::min(x, y); }
 
 // More investigation needed on return types
-template <typename T>
-inline double Sin(T arg) {
-	return std::sin(static_cast<double>(arg));
+template <typename T> inline double Sin(T arg) {
+  return std::sin(static_cast<double>(arg));
 }
 
-template <typename T>
-inline double Cos(T arg) {
-	return std::cos(static_cast<double>(arg));
+template <typename T> inline double Cos(T arg) {
+  return std::cos(static_cast<double>(arg));
 }
 
-template <typename T>
-inline double Sqrt(T arg) {
-	return std::sqrt(static_cast<double>(arg));
+template <typename T> inline double Sqrt(T arg) {
+  return std::sqrt(static_cast<double>(arg));
 }
 
 /* Conversion operations */

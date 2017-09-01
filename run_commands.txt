@@ -1,1 +1,1 @@
-guile -l guile.scm cgen-ir.scm -v -v -v -s . -a ../cpu/lm32.cpu -R cose.h
+guile -l guile.scm cgen-ir.scm -v -v -v -s . -a ../cpu/lm32.cpu -R registers.h -T decoder.h -D decoder.cpp

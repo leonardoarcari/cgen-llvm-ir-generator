@@ -21,6 +21,12 @@
         (if (equal? #\- (string-ref str i))
           (string-set! str i #\_)
         )
+        (if (equal? #\+ (string-ref str i))
+          (string-set! str i #\_)
+        )
+        (if (equal? #\. (string-ref str i))
+          (string-set! str i #\_)
+        )
       )
       str
     )
@@ -39,7 +45,7 @@
   (if (eq? (obj:name insn) 'x-invalid)
     "EmptyInstruction"
     (string-append 
-      (string-capitalize (symbol->string (obj:name insn)))
+      (string-capitalize (sanitize-elm-name (symbol->string (obj:name insn))))
       "Instruction"
     )
   )
@@ -53,7 +59,7 @@
 (define (gen-sfmt-class-name sfmt)
   (assert (class-instance? <sformat> sfmt))
 
-  (let ((name (symbol->string (obj:name sfmt))))
+  (let ((name (sanitize-elm-name (symbol->string (obj:name sfmt)))))
     (string-append
       (string-capitalize (substring name (string-length "sfmt-")))
       "SFormat"
@@ -91,14 +97,15 @@
 ; instruction
 
 (define (gen-ir-ifetch pc-var bitoffset bitsize)
-  (string-append "getInstruction<"
+  (string-append "context.readWord<"
     (case bitsize
       ((8) "uint8_t")
       ((16) "uint16_t")
       ((32) "uint32_t")
       (else (error "bad bitsize argument to gen-ir-ifetch" bitsize))
     )
-    ">(" pc-var " + " (number->string (quotient bitoffset 8))
+    ">("
+    (number->string (quotient bitoffset 8))
     ")"
   )
 )

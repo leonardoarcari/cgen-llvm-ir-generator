@@ -28,7 +28,7 @@ protected:
 	unsigned int _opcode;
 }; */
 
-void Translate(char *Code,
+void Translate(uint8_t *pc,
                llvm::IRBuilder<> Builder,
                llvm::Module *M) {
 	
@@ -36,5 +36,5 @@ void Translate(char *Code,
 	
 	// extract op_code
 	// unsigned int opcode = some_bitshift_magic
-	// auto insn = Instruction::make(opcode, RawInstruction);
+	// auto insn = Instruction::make(opcode, RawInstruction, pc);
 }

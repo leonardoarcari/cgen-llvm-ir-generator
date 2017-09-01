@@ -1812,7 +1812,7 @@ table
 )
 
 (define (rtl-llvm-init!)
-  (set! -rtl-cpp-gen-table (rtl-cpp-build-table "llvm"))
+  (set! -rtl-cpp-gen-table (rtl-llvm-build-table))
   *UNSPECIFIED*
 )
 

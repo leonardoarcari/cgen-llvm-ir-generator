@@ -117,13 +117,25 @@
 
 (define (-gen-new-global hw name)
 	(logit 3 "Generating \"new llvm::GlobalVariable\" statement for " name "\n")
-	(string-append "auto *" (string-downcase (symbol->string name)) " = "
+	(string-append "auto *" 
+				(if
+					(string? name)
+					(string-downcase name)
+					(string-downcase (symbol->string name)) 
+				) 
+				" = "
         "new llvm::GlobalVariable(M,\n"
 				(-gen-reg-type hw) ",\n"; Type
 				"false,\n" ; isConstant
 				"llvm::GlobalValue::LinkageTypes::ExternalLinkage,\n" ; Linkage
 				(-gen-reg-initializer hw) ",\n" ; Initializer
-				"\"" (string-downcase (symbol->string name)) "\""; Name
+				"\"" 
+				(if
+					(string? name)
+					(string-downcase name)
+					(string-downcase (symbol->string name)) 
+				)
+				"\""; Name
 				");\n"
 	)
 )
@@ -144,7 +156,16 @@
 			(while (< i (length values)) ; Cycle over the number of declared registers
 				(logit 4 "history: " history "\n")
 				(if (hw-indices hw) ; Check if we have a list of values (??? Probabily already checked)
-					(set! reg-name (list-ref (list-ref values i) 0)) ; Set i-th register name
+					(set! reg-name 
+						(string-append
+							(sanitize-elm-name (hw-sem-name hw))
+							"_" 
+							(if (string? (list-ref (list-ref values i) 0))
+								(list-ref (list-ref values i) 0)
+								(symbol->string (list-ref (list-ref values i) 0))
+							)
+						)
+					) ; Set i-th register name
 					(set! reg-name 'pc) ; Temporary value. Must check if it's really a PC
 				)
 				(logit 4 "Checking index: " (list-ref (list-ref values i) 1) "\n")
@@ -179,7 +200,7 @@
 			(lambda (hw)
 				(-log-hw-info hw)
 				(string-list
-					(if (not (hw-scalar? hw)) ; Test if single or array
+					(if (> (hw-num-elms hw) 1) ; Test if single or array
 						(-gen-array-vars hw) ; Array of registers
 						(-gen-new-global hw 
               (string->symbol (sanitize-elm-name (hw-sem-name hw)))) ; Single register declaration

@@ -1,6 +1,13 @@
+#ifndef _CGEN_IR_COMMON_H_
+#define _CGEN_IR_COMMON_H_
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+#include <memory>
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -10,17 +17,47 @@
 
 class CgenIRContext {
 public:
-  CgenIRContext(uint8_t *pc);
-  template <typename T> T readWord(size_t offset) {
-    auto size = sizeof(T);
+  explicit CgenIRContext(const std::string &filePath)
+      : builder(llvm::IRBuilder<>(llvm::getGlobalContext())),
+        m(llvm::make_unique<llvm::Module>("Cgen-IR", llvm::getGlobalContext())) {
+    // Read input file into text
+    // TODO: Check for exceptions
+    auto in = std::ifstream(filePath, std::ios::binary | std::ios::ate);
+    auto pos = in.tellg();
 
-    // Do something to get the word
+    text = new char[pos];
+    in.seekg(0, std::ios::beg);
+    in.read(text, pos);
+
+    text_size = static_cast<size_t>(pos);
+    pc = text;
+  }
+
+  ~CgenIRContext() { delete text; }
+
+  template <typename T> T readWord(size_t offset) const {
+    return *(reinterpret_cast<T *>(pc + offset));
+  }
+
+  bool hasNext() const { return pc < (text + text_size); }
+
+  uint8_t getPc() const { return *pc; }
+
+  void incrementPc(size_t byte) {
+    if (pc + byte >= text + text_size) {
+      throw std::out_of_range(std::string("Cannot increment pc by ") +
+                              std::to_string(byte));
+    } else {
+      pc = pc + byte;
+    }
   }
 
 private:
-  uint8_t *pc;
+  char *text = nullptr;
+  char *pc = nullptr;
+  size_t text_size = 0;
   llvm::IRBuilder<> builder;
-  llvm::Module m;
+  std::unique_ptr<llvm::Module> m;
 };
 
 template <typename T>
@@ -36,15 +73,15 @@ inline T extractMSB0(T val, unsigned total, unsigned start, unsigned length) {
 
 /* Semantic operations */
 
-template <typename T> inline T Add(T x, T y) { return x + y; }
+template <typename T, typename S> inline auto Add(T x, S y) -> decltype(x+y) { return x + y; }
 
-template <typename T> inline T Sub(T x, T y) { return x - y; }
+template <typename T, typename S> inline auto Sub(T x, S y) -> decltype(x-y){ return x - y; }
 
-template <typename T> inline T Mul(T x, T y) { return x * y; }
+template <typename T, typename S> inline auto Mul(T x, S y) -> decltype(x*y){ return x * y; }
 
-template <typename T> inline T Div(T x, T y) { return x / y; }
+template <typename T, typename S> inline auto Div(T x, S y) -> decltype(x/y){ return x / y; }
 
-template <typename T> inline T Mod(T x, T y) { return x % y; }
+template <typename T, typename S> inline auto Mod(T x, S y) -> decltype(x%y){ return x % y; }
 
 template <typename T> inline T Sra(T x, int y) { return x >> y; }
 
@@ -78,11 +115,11 @@ template <typename T> inline T Rol(T x, int shift) {
   return x;
 }
 
-template <typename T> inline T And(T x, T y) { return x & y; }
+template <typename T, typename S> inline auto And(T x, S y) -> decltype(x&y){ return x & y; }
 
-template <typename T> inline T Or(T x, T y) { return x | y; }
+template <typename T, typename S> inline auto Or(T x, S y) -> decltype(x|y){ return x | y; }
 
-template <typename T> inline T Xor(T x, T y) { return x ^ y; }
+template <typename T, typename S> inline auto Xor(T x, S y) -> decltype(x^y){ return x ^ y; }
 
 template <typename T> inline T Neg(T x) { return -x; }
 
@@ -174,3 +211,5 @@ template <typename D, typename S> inline D ZExtTo(S x) {
 template <typename D, typename S> inline D TruncTo(S x) {
   return static_cast<D>(x);
 }
+
+#endif

@@ -10,27 +10,17 @@
 ; Sanitize an element name to be a valid C++ variable name.
 ; NAME must be a valid string or a symbol
 
+(use-modules (ice-9 regex)) ; Load regexp module
 (define (sanitize-elm-name name)
-  (let ((str ""))
+  (let ((str "") (regex "[^_a-z0-9A-Z]"))
     (if (string? name)
       (set! str name)
       (set! str (symbol->string name))
     )
-    (string-for-each-index
-      (lambda (i)
-        (if (equal? #\- (string-ref str i))
-          (string-set! str i #\_)
-        )
-        (if (equal? #\+ (string-ref str i))
-          (string-set! str i #\_)
-        )
-        (if (equal? #\. (string-ref str i))
-          (string-set! str i #\_)
-        )
-      )
+    (if (string-match regex str) 
+      (regexp-substitute/global #f regex str 'pre "_" 'post)
       str
     )
-    str
   )
 )
 
@@ -92,18 +82,24 @@
   (gen-mode-cpp-type (ifld-decode-mode ifld))
 )
 
+; Return C++ type of size BITSIZE as a string
+
+(define (gen-cpp-type-ofsize bitsize)
+  (case bitsize
+      ((8) "uint8_t")
+      ((16) "uint16_t")
+      ((32) "uint32_t")
+      (else (error "bad bitsize argument to gen-ir-ifetch" bitsize))
+  )
+)
+
 ; Return C++ code to fetch a value from instruction memory.
 ; PC-VAR is the C++ expression containing the address of the start of the
 ; instruction
 
 (define (gen-ir-ifetch pc-var bitoffset bitsize)
   (string-append "context.readWord<"
-    (case bitsize
-      ((8) "uint8_t")
-      ((16) "uint16_t")
-      ((32) "uint32_t")
-      (else (error "bad bitsize argument to gen-ir-ifetch" bitsize))
-    )
+    (gen-cpp-type-ofsize bitsize)
     ">("
     (number->string (quotient bitoffset 8))
     ")"
@@ -122,6 +118,52 @@
     ((mode:eq? mode (mode:lookup 'USI)) "uint32_t")
     ((mode:eq? mode (mode:lookup 'DI)) "int64_t")
     ((mode:eq? mode (mode:lookup 'UDI)) "uint64_t")
+  )
+)
+
+; Prefixes ifield names found in RTL-SEQUENCE in CPP-CODE with PREFIX
+; This routine is very handy when the generated cpp code accesses
+; ifields by name but they actually are members of some structure.
+; E.g.: RTL-SEQUENCE compiles to 
+;   f_op_B = Or(f_op__b, Sll((f_B_5_3), 3));
+; but f_op_B, f_op__b and f_B_5_3 are members of a structure variable
+; named sfmt. Then to make the code compile we need to prefix it with
+;   "sfmt."
+; producing as output:
+;   sftm.f_op_B = Or(sftm.f_op__b, Sll((sftm.f_B_5_3), 3));
+
+(define (rtl-prefix-ifld cpp-code rtl-sequence prefix)
+  (let* (
+      (rtl (rtx-strdump rtl-sequence))
+      (cpp cpp-code)
+      (ifld-decls (map match:substring (list-matches "(ifield [^)]*)" rtl)))
+      (iflds '())
+    )
+    (begin
+      (map 
+        (lambda (ifld-decl)
+          (let 
+            ((str ""))
+            (begin
+              (set! str (match:suffix (string-match "ifield " ifld-decl)))
+              (set! iflds (append iflds (list str)))
+            )
+          )
+        )
+        ifld-decls
+      )
+      (map
+        (lambda (ifld)
+          (set! cpp
+            (regexp-substitute/global #f 
+              (sanitize-elm-name ifld) cpp 'pre prefix 0 'post
+            )
+          )
+        )
+        iflds
+      )
+      cpp
+    )
   )
 )
 
@@ -265,7 +307,7 @@
             mode)))
 
       ; The enclosing function must set `pc' to the correct value.
-      (cppx:make mode "pc")
+      (cppx:make mode "context.getPc()")
     )
   )
 )

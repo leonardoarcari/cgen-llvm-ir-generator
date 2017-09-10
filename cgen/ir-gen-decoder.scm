@@ -13,7 +13,18 @@
     )
     "parseSfmt(uint32_t rawInstruction, CgenIRContext &context)" 
   )
-) 
+)
+
+(define (-gen-dump-insn-proto namespace)
+  (string-append
+    "std::string "
+    (if namespace
+      (string-append namespace "::")
+      ""
+    )
+    "dump() const"
+  )
+)
 
 ; Returns the C++ code to perform header includes
 
@@ -30,8 +41,8 @@
 
 (define (-gen-decode-default-entry indent invalid-insn fn?)
   (string-append
-    indent "insn = std::make_unique<"
-      (gen-insn-class-name invalid-insn) ">{opcode};\n"
+    indent "insn = llvm::make_unique<"
+      (gen-insn-class-name invalid-insn) ">();\n"
   )    
 )
 
@@ -75,11 +86,13 @@
           ; Don't know if we need it in our IR gen application
           "baseRawInstruction"
           " & 0x" (number->hex (insn-base-mask insn)) ") == 0x" (number->hex (insn-value insn)) ") {\n"
-          indent "      insn = std::make_unique<" 
-            (gen-insn-class-name insn) ">{opcode};\n"
+          indent "      insn = llvm::make_unique<" 
+            (gen-insn-class-name insn) ">();\n"
+          indent "      break;\n"
           indent "    } else {\n"
           (-gen-decode-default-entry (string-append "  " indent indent) 
             invalid-insn fn?)
+          indent "      break;\n"
           indent "    }\n"  
         )
       )
@@ -319,14 +332,26 @@
         (set! startbit (dtable-guts-startbit table-guts))
         (set! decode-bitsize (dtable-guts-bitsize table-guts))
         ; FIXME: Bits may get fetched again during extraction.
-        (string-append indent "unsigned int opcode;\n"
+        (string-append
+          (if (> switch-num 0)
+            ""
+            (string-append indent "unsigned int opcode;\n")
+          )
           indent "/* Must fetch more bits.  */\n"
           indent "rawInstruction = "
           (gen-ir-ifetch "pc" startbit decode-bitsize)
           ";\n"
           indent "opcode = ")
       )
-      (string-append indent "unsigned int opcode = "))
+      (string-append 
+        indent
+        (if (> switch-num 0)
+          "opcode"
+          "unsigned int opcode"
+        ) 
+        " = "
+      )
+    )
     (-gen-decode-bits (dtable-guts-bitnums table-guts)
       (dtable-guts-startbit table-guts)
       (dtable-guts-bitsize table-guts)
@@ -348,7 +373,7 @@
               (-gen-decode-expr-entry (car entries) indent invalid-insn fn?))
             ((table)
               (-gen-decode-table-entry (car entries) (cdr entries)
-                switch-num startbit decode-bitsize
+                (+ switch-num 1) startbit decode-bitsize
                 indent lsb0? invalid-insn fn?))
             )
           result)
@@ -358,7 +383,12 @@
 
     indent "  default :\n"
     (-gen-decode-default-entry (string-append "    " indent) invalid-insn fn?)
-    indent "}\n"
+    indent "    break;\n"
+    indent "}"
+    (if (> switch-num 0)
+      " break;\n"
+      "\n"
+    )
   )
 )
 
@@ -385,7 +415,7 @@
           invalid-insn)))
 
     ; Now print it out.
-    (-gen-decoder-switch "0" 0 decode-bitsize table-guts indent lsb0?
+    (-gen-decoder-switch 0 0 decode-bitsize table-guts indent lsb0?
        invalid-insn fn?)
   )
 )
@@ -394,7 +424,7 @@
 
 (define (gen-insn-class-ifld f indent)
   (string-list
-    indent (gen-ifld-cpp-type f) " " (sanitize-elm-name (obj:name f)) ";\n"
+    indent (gen-ifld-cpp-type f) " " (sanitize-elm-name (obj:name f)) " = 0;\n"
   )
 )
 
@@ -459,7 +489,7 @@
       "\
 std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, CgenIRContext& context) {
 
-  auto *insn = std::make_unique<Instruction>{};
+  auto insn = std::unique_ptr<Instruction>(nullptr);
   uint32_t rawInstruction = baseRawInstruction;
 
 "
@@ -687,18 +717,22 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
 
 (define (gen-ir-multi-ifld-extract f indent base-length total-length base-value var-list)
   ; The subfields must have already been extracted.
+  ;(logit 3 "\nTesting RTL-prefix:" (rtl-prefix-ifld "sfmt." (multi-ifld-extract f)) "\n")
   (let* ((decode-proc (ifld-decode f))
       (varname (gen-sym f))
-      (decode 
-        (string-list
+      (cpp-code
           ;; First, the block that extract the multi-ifield into the ifld variable
           (rtl-cpp VOID (multi-ifld-extract f) nil
             #:ifield-var? #t
           )
+      )
+      (decode 
+        (string-list
+          (rtl-prefix-ifld cpp-code (multi-ifld-extract f) "sfmt.")
           ;; Next, the decode routine that modifies it
           (if decode-proc
             (string-append
-              "  " varname " = "
+              "  sfmt." varname " = "
               (rtl-cpp VOID (cadr decode-proc)
                 (list 
                   (list (caar decode-proc) 'UINT varname)
@@ -744,7 +778,8 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
                 (cdr chunk-spec)
                 (string-append
                  indent
-                 "uint32_t word_"
+                 (gen-cpp-type-ofsize (cdr chunk-spec))
+                 " word_"
                  (number->string chunk-num))
             ))
             chunk-specs
@@ -804,6 +839,74 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
   )
 )
 
+; Returns C++ code to implement the "std::string dump()" method
+; of the C++ class representing <insn> INSN
+
+(define (-gen-insn-dump insn)
+  (logit 2 "Generating dump() method for \"" (obj:name insn) "\"\n")
+  (let ((sfmt (insn-sfmt insn)))
+    (string-list
+      (-gen-dump-insn-proto (gen-insn-class-name insn)) " {\n"
+      "  auto ss = std::ostringstream{};\n"
+      "  ss << \"" (gen-insn-class-name insn) " {\" << sfmt.dump() << \"}\\n\";\n"
+      "  return ss.str();\n"
+      "}\n\n"
+    )
+  )
+)
+
+; For each instruction, implement the strategy method 'dump()' to
+; produce a string dump of the instruction
+
+(define (-gen-all-insn-dump)
+  (logit 2 "Generating dump() methods\n")
+  (string-list-map -gen-insn-dump
+    (non-multi-insns (real-insns (current-insn-list)))
+  )
+)
+
+; Returns a string of C++ code emitting on a stream a dump of the
+; content of IFLDS
+
+(define (-gen-cpp-ifld-stream iflds)
+  (string-list
+    (string-list-map (lambda (f)
+      (string-list 
+        "\""
+        (sanitize-elm-name (obj:name f))
+        " = \" << " 
+        (sanitize-elm-name (obj:name f)) 
+        " << \"; \" << "
+      ))
+      iflds)
+  )
+)
+
+; Returns C++ code to implement the "std::string dump()" method
+; of the C++ structure representing <sfmt> SFMT
+
+(define (-gen-sfmt-dump sfmt)
+  (logit 2 "Generating dump() method for SFormat \"" (obj:name sfmt) "\" ...\n"
+    "\t\t<Key>: \"" (sfmt-key sfmt) "\"\n")
+  (string-list
+    (-gen-dump-insn-proto (gen-sfmt-class-name sfmt)) " {\n"
+    "  auto ss = std::ostringstream{};\n"
+    "  ss << "
+    (-gen-cpp-ifld-stream (sfmt-iflds sfmt))
+    "\"\""
+    ";\n  return ss.str();\n"
+    "}\n\n"
+  )
+)
+
+; For each <sformat> implement the method 'dump()' to produce
+; a string dump of the instruction
+
+(define (-gen-all-sfmt-dump)
+  (logit 2 "Generating dump() methods for SFormats\n")
+  (string-list-map -gen-sfmt-dump (current-sfmt-list))
+)
+
 ; Generates decoder.cpp
 
 (define (decoder.cpp)
@@ -816,6 +919,8 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
             (state-decode-assist)
             (current-arch-insn-lsb0?)))
     (lambda () (-gen-all-insn-parse-sfmt))
+    (lambda () (-gen-all-sfmt-dump))
+    (lambda () (-gen-all-insn-dump))
   )
 )
 
@@ -825,6 +930,8 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
   (string-append
     "#include <cstdint>\n"
     "#include <memory>\n"
+    "#include <string>\n"
+    "#include <sstream>\n"
     "\n"
   )
 )
@@ -850,15 +957,9 @@ void translate(CgenIRContext& context) {
     "\
 class Instruction {
 public:
-  static std::unique_ptr<Instruction> make(unsigned int opcode, uint32_t rawInstruction, uint8_t *pc);
-  virtual " (-gen-parse-sfmt-proto #f) " = 0;\
-
-private:
-  Instruction(unsigned int opcode)
-    : _opcode{opcode} { }
-
-protected:
-  unsigned int _opcode;
+  static std::unique_ptr<Instruction> make(uint32_t baseRawInstruction, CgenIRContext& context);
+  virtual " (-gen-parse-sfmt-proto #f) " = 0;
+  virtual " (-gen-dump-insn-proto #f) " = 0;
 };
 
 "
@@ -876,8 +977,9 @@ protected:
   (string-list
     ; Temporary generation of derived instruction class
     ; declaration / definition
-    "struct " (gen-sfmt-class-name sfmt) " {\n"
-    "" ; Fields
+    "struct " (gen-sfmt-class-name sfmt) " {\n  "
+    (-gen-dump-insn-proto #f)
+    ";\n\n" ; Fields
     (gen-insn-class-ifields (sfmt-iflds sfmt) (sfmt-length sfmt) "  ")
     "};\n\n"
   )
@@ -912,11 +1014,13 @@ protected:
 (define (-gen-class-insn insn)
   (logit 2 "Generating instruction implementation for \"" (obj:name insn) "\" ...\n")
   (string-list
-    ; Temporary generation of derived instruction class
+    ; Generation of derived instruction class
     ; declaration / definition
     "class " (gen-insn-class-name insn) " : public Instruction {\n"
     "public:\n"
+    "  " (gen-insn-class-name insn) "() {}\n"
     "  " (-gen-parse-sfmt-proto #f) ";\n"
+    "  " (-gen-dump-insn-proto #f) ";\n"
     "private:\n"
     ; Fields
     "  " (gen-sfmt-class-name (insn-sfmt insn)) " sfmt;\n"

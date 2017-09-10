@@ -209,6 +209,10 @@
     ;           generation semantically equivalent to the expression
     (semantic-type . "cpp")
 
+    ; Prefix to a ifield name. Useful in case the ifield
+    ; is accesed in a data structure
+    (ifield-prefix . "") 
+
     ; ===== LEFT TEMPORARLY. WE'LL SEE IF WE NEED IT =====
     ; #f -> reference ifield values using FLD macro.
     ; #t -> use C variables.
@@ -237,6 +241,9 @@
   (string=? (estate-semantic-type estate) "llvm")
 )
 
+; Returns ifield-prefix
+(define estate:ifld-prefix (elm-make-getter <rtl-cpp-eval-state> 'ifield-prefix))
+
 (method-make!
  <rtl-cpp-eval-state> 'vmake!
  (lambda (self args)
@@ -250,6 +257,8 @@
         (elm-set! self 'semantic-type (cadr args)))
        ((#:ifield-var?)
         (elm-set! self 'ifield-var? (cadr args)))
+       ((#:ifield-prefix)
+        (elm-set! self 'ifield-prefix (cadr args)))
        (else
         ; Build in reverse order, as we reverse it back when we're done.
         (set! unrecognized
@@ -304,9 +313,9 @@
 ; ESTATE is the current rtx evaluation state.
 
 (define (rtl-cpp-with-estate estate mode expr)
-  (logit 3 "    Returning C++ code for expression: " expr "...\n")
+  ;(logit 3 "    Returning C++ code for expression: " expr "...\n")
   (rtx-eval-with-estate expr mode estate)
-  (logit 3 "\n\n\nEvaluated:\n")
+  ;(logit 3 "\n\n\nEvaluated:\n")
 
   (let ((inner (rtx-eval-with-estate expr mode estate)))
     (cppx:cpp (rtl-cpp-get estate mode inner))
@@ -599,7 +608,11 @@
 ; s-c-call needs a better name but "unspec" seems like obfuscation.
 ; ??? Need to distinguish owner of call (cpu, ???). 
 (define (s-cpp-c-call estate mode name . args)
-  *UNSPECIFIED*
+  (cppx:make mode 
+    (string-append "std::err << \"Call to C++ function not implemented yet\\n\";"
+      "std::abort();"
+    )
+  )
 )
 
 ; This procedure is left unspecified while we decide how to handle external
@@ -610,7 +623,11 @@
 ; whereas c-call makes calls to member functions (in C++ parlance).
 
 (define (s-cpp-c-raw-call estate mode name . args)
-  *UNSPECIFIED*
+    (cppx:make mode 
+    (string-append "std::err << \"Raw call to C++ function not implemented yet\\n\";"
+      "std::abort();"
+    )
+  )
 )
 
 ; Standard arithmetic operations.
@@ -1544,13 +1561,19 @@
 
 
 (define-fn join (estate options out-mode in-mode arg1 . arg-rest)
-  ; NOT YET IMPLEMENTED. 
-  (cppx:make 'VOID ";") ; Returns empty statement
+  (cppx:make mode 
+    (string-append "std::err << \"Join function not implemented yet\\n\";"
+      "std::abort();"
+    )
+  )
 )
 
 (define-fn subword (estate options mode value word-num)
-  ; NOT YET IMPLEMENTED. 
-  (cppx:make 'VOID ";") ; Returns empty statement
+  (cppx:make mode 
+    (string-append "std::err << \"Subword function not implemented yet\\n\";"
+      "std::abort();"
+    )
+  )
 )
 
 (define-fn c-code (estate options mode text)

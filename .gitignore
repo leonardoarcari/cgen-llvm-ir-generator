@@ -2,3 +2,5 @@
 *.sublime*
 cgen/*-output
 demo/*-output
+cgen/*.h
+cgen/*.cpp

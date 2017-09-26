@@ -610,7 +610,7 @@
 (define (s-cpp-c-call estate mode name . args)
   (cppx:make mode 
     (string-append "std::err << \"Call to C++ function not implemented yet\\n\";"
-      "std::abort();"
+      "std::abort()"
     )
   )
 )
@@ -625,7 +625,7 @@
 (define (s-cpp-c-raw-call estate mode name . args)
     (cppx:make mode 
     (string-append "std::err << \"Raw call to C++ function not implemented yet\\n\";"
-      "std::abort();"
+      "std::abort()"
     )
   )
 )
@@ -1355,7 +1355,7 @@
 
 (define-fn error (estate mode semantic-type message)
   ; NOT YET IMPLEMENTED. REQUIRES C-CALL SUPPORT
-  (cppx:make mode ";") ; Returns empty statement
+  (cppx:make mode "std::abort()") ; Returns empty statement
 )
 
 ; Enum support
@@ -1533,12 +1533,12 @@
 
 (define-fn eq-attr (estate options mode obj attr-name value)
   ; NOT YET IMPLEMENTED. Is it necessary?
-  (cppx:make 'INT ";") ; Returns empty statement
+  (cppx:make 'INT "std::abort()") ; Returns empty statement
 )
 
 (define-fn attr (estate options mode owner attr-name)
   ; NOT YET IMPLEMENTED. Is it necessary?
-  (cppx:make 'INT ";") ; Returns empty statement
+  (cppx:make 'INT "std::abort()") ; Returns empty statement
 )
 
 (define-fn const (estate options mode c)
@@ -1562,17 +1562,13 @@
 
 (define-fn join (estate options out-mode in-mode arg1 . arg-rest)
   (cppx:make mode 
-    (string-append "std::err << \"Join function not implemented yet\\n\";"
-      "std::abort();"
-    )
+    "std::abort()"
   )
 )
 
 (define-fn subword (estate options mode value word-num)
   (cppx:make mode 
-    (string-append "std::err << \"Subword function not implemented yet\\n\";"
-      "std::abort();"
-    )
+    "std::abort()"
   )
 )
 
@@ -1785,7 +1781,7 @@
 
 (define-fn member (estate options mode value set)
   ; NOT YET IMPLEMENTED. 
-  (cppx:make 'VOID ";") ; Returns empty statement
+  (cppx:make 'VOID "std::abort()")
 )
 
 (define-fn if (estate options mode cond then . else)

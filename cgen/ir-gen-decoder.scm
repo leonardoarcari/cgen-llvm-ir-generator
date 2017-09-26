@@ -6,12 +6,14 @@
 
 (define (-gen-parse-sfmt-proto namespace)
   (string-append
-    "void "
+    "int "
     (if namespace
       (string-append namespace "::")
       ""
     )
-    "parseSfmt(uint32_t rawInstruction, CgenIRContext &context)" 
+    "parseSfmt("
+    (gen-cpp-type-ofsize (state-word-bitsize)) 
+    " rawInstruction, CgenIRContext &context)" 
   )
 )
 
@@ -23,6 +25,19 @@
       ""
     )
     "dump() const"
+  )
+)
+
+(define (-gen-insn-make-proto namespace)
+  (string-append
+    "std::pair<std::unique_ptr<Instruction>, int> "
+    (if namespace
+      (string-append namespace "::")
+      ""
+    )
+    "make("
+    (gen-cpp-type-ofsize (state-word-bitsize)) 
+    " baseRawInstruction, CgenIRContext& context)"
   )
 )
 
@@ -82,7 +97,7 @@
           (number->string (dtable-entry-index entry)) " :\n"
           ; Generate code to check that all of the opcode bits for this insn match
           indent "    if (("
-          ; We are missing to check adata-integral-insn? CURRENT-ARRCH
+          ; We are missing to check adata-integral-insn? CURRENT-ARCH
           ; Don't know if we need it in our IR gen application
           "baseRawInstruction"
           " & 0x" (number->hex (insn-base-mask insn)) ") == 0x" (number->hex (insn-value insn)) ") {\n"
@@ -486,19 +501,19 @@
             #f)))
       (string-write
 (-gen-decoder-cpp-includes)
-      "\
-std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, CgenIRContext& context) {
+
+(-gen-insn-make-proto "Instruction") " {
 
   auto insn = std::unique_ptr<Instruction>(nullptr);
-  uint32_t rawInstruction = baseRawInstruction;
+  " (gen-cpp-type-ofsize (state-word-bitsize)) " rawInstruction = baseRawInstruction;
 
 "
   decode-code
 "\
     
   // Demand extracting fields to derived class strategy method
-  insn->parseSfmt(rawInstruction, context); 
-  return insn;
+  int bytesRead = insn->parseSfmt(rawInstruction, context);
+  return std::tie(insn, bytesRead);
 }
 "
       )
@@ -513,6 +528,7 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
     var-name " = "
     (gen-ir-ifetch "pc" offset bits)
     ";\n"
+    "  bytesRead += sizeof(" (gen-cpp-type-ofsize bits) ");\n"
   )
 )
 
@@ -770,6 +786,8 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
         (chunk-specs (-extract-chunk-specs base-length total-length
               (current-arch-default-alignment))))
     (string-list
+      ; Local variable for counting bytes read within parseSfmt() method
+      indent "int bytesRead = 0;\n"
       ; If the insn has a trailing part, fetch it.
       (if (> total-length base-length)
         (let ()
@@ -811,6 +829,7 @@ std::unique_ptr<Instruction> Instruction::make(uint32_t baseRawInstruction, Cgen
         )
         ifields
       )
+      indent "return bytesRead;\n"
     )
   )
 )
@@ -949,6 +968,43 @@ void translate(CgenIRContext& context) {
   )
 )
 
+; Returns instruction chunk bitsize.
+; Some archs require you to fetch the instruction word by
+; chunks of lower size. This procedure returns the current cpu
+; instruction bitsize. The assumption made here is that all cpus
+; from CURRENT-ARCH have the same insn chunk bitsize. Otherwise
+; the procedure returns an error.
+; 
+; According to CGEN convention, 0 bitsize means no chunking. 
+
+(define (state-insn-chunk-bitsize)
+  (let* ((cbs-list (map cpu-insn-chunk-bitsize (current-cpu-list)))
+   (result (car cbs-list)))
+    (for-each (lambda (cbs)
+    (if (!= result cbs)
+        (error "multiple word-bitsize values" cbs-list)))
+        cbs-list)
+    result)
+)
+
+; TODO: Comment
+
+(define (-gen-insn-cpp-traits indent)
+  (let ((wordtype (state-word-bitsize))
+      (chunksize (state-insn-chunk-bitsize)))
+    (string-append
+      indent "using wordType = " (gen-cpp-type-ofsize wordtype) ";\n"
+      indent "using chunkType = "
+      (if (> chunksize 0)
+        (gen-cpp-type-ofsize chunksize)
+        (gen-cpp-type-ofsize wordtype)
+      )
+      ";\n"
+      indent "using endianness = " ";\n"
+    )
+  )
+)
+
 ; TODO: Comment
 
 (define (-gen-base-class-insn) 
@@ -957,12 +1013,54 @@ void translate(CgenIRContext& context) {
     "\
 class Instruction {
 public:
-  static std::unique_ptr<Instruction> make(uint32_t baseRawInstruction, CgenIRContext& context);
+"
+(-gen-insn-cpp-traits "  ")
+"
+  static " (-gen-insn-make-proto #f) ";
   virtual " (-gen-parse-sfmt-proto #f) " = 0;
   virtual " (-gen-dump-insn-proto #f) " = 0;
 };
 
 "
+  )
+)
+
+(define ifld-bitrange (elm-make-getter <ifield> 'bitrange))
+
+; TODO: COMMENT
+(define (-gen-sfmt-bitrange sfmt indent)
+  (logit 2 "Sfmt " (obj:name sfmt) "\n")
+  (if (> (sfmt-length sfmt) 0) ; Do for real sformats only
+    (let ((bits '()))
+      (map (lambda (f)
+          (let* ((br (ifld-bitrange f)))
+            (if (not (eq? br -object-unbound)) ; Handle unbound-object exception
+              (let* ((start (bitrange-start br))
+                  (len (bitrange-length br))
+                  (tmp (logit 2 "Bitrange{start: " start ", len: " len ", lsb0? " (bitrange-lsb0? br) ", word-offset: " (bitrange-word-offset br)"\n")))              
+                (set! bits (cons start bits))
+                (set! bits (cons (+ (- start len) 1) bits))
+              )
+              #f ; Do nothing for unbound-objects
+            )
+          )
+        )
+        (sfmt-iflds sfmt)
+      )
+      (if (null? bits)
+        (string-append indent 
+          "constexpr static std::pair<int, int> bitRange = {0, 0};")
+        (begin
+          (set! bits (cons (- (sfmt-length sfmt) 1) bits))
+          (string-append
+            indent "constexpr static std::pair<int, int> bitRange = {"
+            (number->string (apply min bits)) ", "
+            (number->string (apply max bits)) "};"
+          )
+        )
+      )      
+    )
+    "" ; Empty sfmt
   )
 )
 
@@ -977,7 +1075,8 @@ public:
   (string-list
     ; Temporary generation of derived instruction class
     ; declaration / definition
-    "struct " (gen-sfmt-class-name sfmt) " {\n  "
+    "struct " (gen-sfmt-class-name sfmt) " {\n"
+    (-gen-sfmt-bitrange sfmt "  ") "\n  "
     (-gen-dump-insn-proto #f)
     ";\n\n" ; Fields
     (gen-insn-class-ifields (sfmt-iflds sfmt) (sfmt-length sfmt) "  ")
@@ -1048,7 +1147,6 @@ public:
 
   (string-write
     (lambda () (-gen-decoder-h-includes))
-    (lambda () (-gen-decoder-translate-proc))
     (lambda () (-gen-all-class-sfmts))
     (lambda () (-gen-base-class-insn))
     (lambda () (-gen-all-class-insns))

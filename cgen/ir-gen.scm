@@ -93,6 +93,22 @@
   )
 )
 
+; State current CPU endianness. It assumes all cpus in current-cpu-list
+; have the same endianness. If no endianness is specified, insn-endianness
+; is checked. If no insn-endiannes is specified either, the host endianness
+; is used.
+
+(define (state-cpu-endianness)
+  (let* ((en-list (map cpu-insn-endian (current-cpu-list)))
+      (result (car en-list)))
+    (for-each (lambda (en)
+    (if (not (eq? result en))
+        (error "multiple endianness values" en-list)))
+        en-list)
+    (logit 3 "Endianness: " result "\n")
+    result)
+)
+
 ; Return C++ code to fetch a value from instruction memory.
 ; PC-VAR is the C++ expression containing the address of the start of the
 ; instruction
@@ -100,8 +116,16 @@
 (define (gen-ir-ifetch pc-var bitoffset bitsize)
   (string-append "context.readWord<"
     (gen-cpp-type-ofsize bitsize)
+    ", Instruction::chunkType"
     ">("
     (number->string (quotient bitoffset 8))
+    ", "
+    (case (state-cpu-endianness)
+      ((little) "llvm::support::endianness::little")
+      ((big) "llvm::support::endianness::big")
+      ((either) "llvm::support::endianness::native")
+      (else "llvm::support::endianness::native")
+    )
     ")"
   )
 )
@@ -212,7 +236,7 @@
 
 (define (-hw-gen-cpp-set-quiet-pc self estate mode index selector newval . options)
   (if (not (send self 'pc?)) (error "Not a PC:" self))
-  (cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+  (cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
 )
 
 (method-make! <hw-pc> 'gen-cpp-set-quiet -hw-gen-cpp-set-quiet-pc)
@@ -220,7 +244,7 @@
 (method-make!
   <hw-pc> 'cppxmake-skip
   (lambda (self estate yes?)
-    (cppx:make VOID ";")) ; Empty statement. NOT YET IMPLEMENTED.
+    (cppx:make VOID "std::abort()")) ; Empty statement. NOT YET IMPLEMENTED.
 )
 
 ; Utility to build a <cpp-expr> object to fetch the value of a register.
@@ -234,7 +258,7 @@
     ; If the register is accessed via a cover function/macro, do it.
     ; Otherwise fetch the value from the cached address or from the CPU struct.
     (cppx:make mode
-      ";" ; Empty statement. NOT YET IMPLEMENTED.
+      "std::abort()" ; Empty statement. NOT YET IMPLEMENTED.
     )
   )
 )
@@ -254,7 +278,7 @@
 (method-make!
   <hw-memory> 'cppxmake-get
     (lambda (self estate mode index selector)
-      cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+      cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
 )
 
 (method-make!
@@ -276,7 +300,7 @@
   (lambda (self estate mode index selector)
     (if (not (eq? 'ifield (hw-index:type index)))
       (error "not an ifield hw-index" index))
-    (cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+    (cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
    )
 )
 
@@ -285,14 +309,14 @@
   (lambda (self estate mode index selector)
     (if (not (eq? 'ifield (hw-index:type index)))
       (error "not an ifield hw-index" index))
-    (cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+    (cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
    )
 )
 
 (method-make!
   <hw-index> 'cppxmake-get
   (lambda (self estate mode index selector)
-    (cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+    (cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
    )
 )
 
@@ -329,7 +353,7 @@
 (method-make!
   <operand> 'cppxmake-get
   (lambda (self estate mode index selector)
-    (cppx:make mode ";") ; Empty statement. NOT YET IMPLEMENTED.
+    (cppx:make mode "std::abort()") ; Empty statement. NOT YET IMPLEMENTED.
   )
 )
 

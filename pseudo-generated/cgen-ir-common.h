@@ -6,20 +6,23 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
 #include <memory>
+#include <stdexcept>
+#include <vector>
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Endian.h"
 
 class CgenIRContext {
 public:
   explicit CgenIRContext(const std::string &filePath)
       : builder(llvm::IRBuilder<>(llvm::getGlobalContext())),
-        m(llvm::make_unique<llvm::Module>("Cgen-IR", llvm::getGlobalContext())) {
+        m(llvm::make_unique<llvm::Module>("Cgen-IR",
+                                          llvm::getGlobalContext())) {
     // Read input file into text
     // TODO: Check for exceptions
     auto in = std::ifstream(filePath, std::ios::binary | std::ios::ate);
@@ -31,12 +34,30 @@ public:
 
     text_size = static_cast<size_t>(pos);
     pc = text;
+    uint16_t *p = (uint16_t *)text;
+    for (unsigned int i = 0; i < text_size / sizeof(uint16_t); ++i) {
+      std::cout << std::hex << *(p + i);
+    }
+    std::cout << '\n';
   }
 
   ~CgenIRContext() { delete text; }
 
-  template <typename T> T readWord(size_t offset) const {
-    return *(reinterpret_cast<T *>(pc + offset));
+  template <typename T, typename ChunkType>
+  T readWord(size_t offset, llvm::support::endianness endianness =
+                                llvm::support::endianness::native) const {
+    T word = 0;
+    auto chunks = std::vector<ChunkType>{};
+    for (auto i = 0; i < (sizeof(T) / sizeof(ChunkType)); ++i) {
+      chunks.push_back(llvm::support::endian::read<ChunkType, endianness>(
+          pc + offset + i * sizeof(ChunkType)));
+      if (i == 0) {
+        word = chunks[i];
+      } else {
+        word = (word << sizeof(ChunkType)) | word[i];
+      }
+    }
+    return word;
   }
 
   bool hasNext() const { return pc < (text + text_size); }
@@ -73,15 +94,25 @@ inline T extractMSB0(T val, unsigned total, unsigned start, unsigned length) {
 
 /* Semantic operations */
 
-template <typename T, typename S> inline auto Add(T x, S y) -> decltype(x+y) { return x + y; }
+template <typename T, typename S> inline auto Add(T x, S y) -> decltype(x + y) {
+  return x + y;
+}
 
-template <typename T, typename S> inline auto Sub(T x, S y) -> decltype(x-y){ return x - y; }
+template <typename T, typename S> inline auto Sub(T x, S y) -> decltype(x - y) {
+  return x - y;
+}
 
-template <typename T, typename S> inline auto Mul(T x, S y) -> decltype(x*y){ return x * y; }
+template <typename T, typename S> inline auto Mul(T x, S y) -> decltype(x * y) {
+  return x * y;
+}
 
-template <typename T, typename S> inline auto Div(T x, S y) -> decltype(x/y){ return x / y; }
+template <typename T, typename S> inline auto Div(T x, S y) -> decltype(x / y) {
+  return x / y;
+}
 
-template <typename T, typename S> inline auto Mod(T x, S y) -> decltype(x%y){ return x % y; }
+template <typename T, typename S> inline auto Mod(T x, S y) -> decltype(x % y) {
+  return x % y;
+}
 
 template <typename T> inline T Sra(T x, int y) { return x >> y; }
 
@@ -115,11 +146,17 @@ template <typename T> inline T Rol(T x, int shift) {
   return x;
 }
 
-template <typename T, typename S> inline auto And(T x, S y) -> decltype(x&y){ return x & y; }
+template <typename T, typename S> inline auto And(T x, S y) -> decltype(x & y) {
+  return x & y;
+}
 
-template <typename T, typename S> inline auto Or(T x, S y) -> decltype(x|y){ return x | y; }
+template <typename T, typename S> inline auto Or(T x, S y) -> decltype(x | y) {
+  return x | y;
+}
 
-template <typename T, typename S> inline auto Xor(T x, S y) -> decltype(x^y){ return x ^ y; }
+template <typename T, typename S> inline auto Xor(T x, S y) -> decltype(x ^ y) {
+  return x ^ y;
+}
 
 template <typename T> inline T Neg(T x) { return -x; }
 

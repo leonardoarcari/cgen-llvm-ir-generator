@@ -2,7 +2,66 @@
 
 import argparse
 import subprocess
+from os import SEEK_SET
 from pathlib import Path
+
+
+def gen_include_guards(header):
+    guard_name = '_'
+    for c in header:
+        if c.isupper():
+            guard_name += '_'
+        guard_name += c
+    guard_name += '_H_'
+    guard_name = guard_name.upper()
+    return ('#ifndef ' + guard_name + '\n#define ' + guard_name)
+
+
+def copy_commons(params):
+    common_p = Path('./pseudo-generated/cgen-ir-common.h')
+    dst_common = Path(params['destpath'], 'cgen-ir-common.h')
+    with common_p.open() as src:
+        with dst_common.open(mode='w') as dst:
+            for line in src:
+                dst.write(line)
+
+
+def add_includes_dec_h(params):
+    dec_h = Path(params['decoder-header'])
+    inc_guards = gen_include_guards(dec_h.stem)
+    with dec_h.open(mode='r+') as dst:
+        content = ''
+        for line in dst:
+            content += line
+        dst.seek(0, SEEK_SET)
+        dst.write(inc_guards + '\n\n')
+        dst.write('#include \"cgen-ir-common.h\"\n\n')
+        dst.write(content)
+        dst.write('\n#endif\n')
+
+
+def add_includes_dec_src(params):
+    dec_src = Path(params['decoder-src'])
+    dec_h = Path(params['decoder-header'])
+    with dec_src.open(mode='r+') as dst:
+        content = ''
+        for line in dst:
+            content += line
+        dst.seek(0, SEEK_SET)
+        dst.write('#include \"' + dec_h.name + '\"\n\n')
+        dst.write(content)
+
+
+def clang_format_all(params):
+    cf_command = ('clang-format -i -style=LLVM -sort-includes ' +
+                  params['destpath'] + '/*.cpp ' +
+                  params['destpath'] + '/*.h')
+    try:
+        subprocess.run(cf_command, shell=True, check=True,
+                       stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        print('Could not run clang-format on generated source files.',
+              'clang-format may be missing... I\'m sorry')
 
 
 def generate_all(params):
@@ -12,9 +71,31 @@ def generate_all(params):
                      ' -T ' + params['decoder-header'] +
                      ' -D ' + params['decoder-src'] +
                      ' -R ' + params['registers-header'])
-    proc = subprocess.run(guile_command, shell=True, check=True,
-                          stderr=subprocess.STDOUT)
-    print(proc)
+    try:
+        subprocess.run(guile_command, shell=True, check=True,
+                       stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        print("Something went wrong in generating C++ code\n")
+        exit(1)
+
+    print('\nI correctly generated all your source files!',
+          '\nLet me perform some gluing...')
+    # Copy common source files to destination path
+    copy_commons(params)
+    print('  Common sources copied...')
+
+    # Add includes to decoder-header
+    add_includes_dec_h(params)
+    print('  Added includes to decoder header...')
+
+    # Add include to decoder-source
+    add_includes_dec_src(params)
+    print('  Added includes to decoder source')
+
+    # Clang-format generated C++ code
+    print('  Let me clang-format your sources...', end='')
+    clang_format_all(params)
+    print('You\'re welcome!')
 
 
 def build_guile_params(args):

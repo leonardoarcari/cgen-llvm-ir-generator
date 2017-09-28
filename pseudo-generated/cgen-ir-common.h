@@ -43,18 +43,17 @@ public:
 
   ~CgenIRContext() { delete text; }
 
-  template <typename T, typename ChunkType>
-  T readWord(size_t offset, llvm::support::endianness endianness =
-                                llvm::support::endianness::native) const {
+  template <typename T, typename ChunkType,
+            llvm::support::endianness Endianness>
+  T readWord(size_t offset) const {
     T word = 0;
-    auto chunks = std::vector<ChunkType>{};
-    for (auto i = 0; i < (sizeof(T) / sizeof(ChunkType)); ++i) {
-      chunks.push_back(llvm::support::endian::read<ChunkType, endianness>(
-          pc + offset + i * sizeof(ChunkType)));
+    for (size_t i = 0; i < (sizeof(T) / sizeof(ChunkType)); ++i) {
+      auto chunk = llvm::support::endian::read<ChunkType, Endianness>(
+          pc + offset + i * sizeof(ChunkType));
       if (i == 0) {
-        word = chunks[i];
+        word = static_cast<T>(chunk);
       } else {
-        word = (word << sizeof(ChunkType)) | word[i];
+        word = (word << (sizeof(ChunkType) * 8)) | chunk;
       }
     }
     return word;
@@ -247,6 +246,11 @@ template <typename D, typename S> inline D ZExtTo(S x) {
 
 template <typename D, typename S> inline D TruncTo(S x) {
   return static_cast<D>(x);
+}
+
+inline bool booleanAbort() {
+  std::abort();
+  return false;
 }
 
 #endif

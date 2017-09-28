@@ -513,7 +513,7 @@
     
   // Demand extracting fields to derived class strategy method
   int bytesRead = insn->parseSfmt(rawInstruction, context);
-  return std::tie(insn, bytesRead);
+  return std::make_pair(std::move(insn), bytesRead);
 }
 "
       )
@@ -834,6 +834,18 @@
   )
 )
 
+; Return C++ code to implement the "void parseSfmt()" method
+; of the C++ class representing empty <insn>
+(define (-gen-parse-sfmt-empty-insn)
+  (let ((empty (current-insn-lookup 'x-invalid)))
+    (string-append
+      (-gen-parse-sfmt-proto (gen-insn-class-name empty)) " {\n"
+      "  return 0;\n"
+      "}\n\n"
+    )
+  )
+)
+
 ; Returns C++ code to implement the "void parseSfmt()" method
 ; of the C++ class representing <insn> INSN
 
@@ -853,8 +865,23 @@
 
 (define (-gen-all-insn-parse-sfmt)
   (logit 2 "Generating parseSfmt() methods\n")
-  (string-list-map -gen-insn-parse-sfmt 
-    (non-multi-insns (real-insns (current-insn-list)))
+  (cons (-gen-parse-sfmt-empty-insn) 
+    (string-list-map -gen-insn-parse-sfmt 
+      (non-multi-insns (real-insns (current-insn-list)))
+    )
+  )
+)
+
+; Returns C++ code to implement the "std::string dump()" method
+; of the C++ class representing Empty <insn>
+(define (-gen-insn-dump-empty-insn)
+  (let ((empty (current-insn-lookup 'x-invalid)))
+    (string-append
+      (-gen-dump-insn-proto (gen-insn-class-name empty)) " {\n"
+      "return std::string(\"" (gen-insn-class-name empty) " {\")"
+      " + sfmt.dump() + \"}\\n\";\n"
+      "}\n\n"
+    )
   )
 )
 
@@ -879,8 +906,11 @@
 
 (define (-gen-all-insn-dump)
   (logit 2 "Generating dump() methods\n")
-  (string-list-map -gen-insn-dump
-    (non-multi-insns (real-insns (current-insn-list)))
+  (cons 
+    (-gen-insn-dump-empty-insn) 
+      (string-list-map -gen-insn-dump
+        (non-multi-insns (real-insns (current-insn-list)))
+    )
   )
 )
 
@@ -951,6 +981,7 @@
     "#include <memory>\n"
     "#include <string>\n"
     "#include <sstream>\n"
+    "#include \"llvm/Support/Endian.h\""
     "\n"
   )
 )
@@ -1000,7 +1031,7 @@ void translate(CgenIRContext& context) {
         (gen-cpp-type-ofsize wordtype)
       )
       ";\n"
-      indent "using endianness = " ";\n"
+      indent "static const llvm::support::endianness endianness = " (gen-cpp-type-endianness) ";\n"
     )
   )
 )

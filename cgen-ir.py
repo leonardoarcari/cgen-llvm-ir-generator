@@ -5,6 +5,42 @@ import subprocess
 from os import SEEK_SET
 from pathlib import Path
 
+MAIN_SRC = """#include <iostream>
+
+int main(int argc, char const *argv[])
+{
+    CgenIRContext a(argv[1]);
+    while (a.hasNext()) {
+        auto word =
+            a.readWord<Instruction::wordType,
+                       Instruction::chunkType,
+                       Instruction::endianness>(0);
+        std::cout << std::hex << word << \'\\n\';
+        std::unique_ptr<Instruction> insn(nullptr);
+        int bytes_read = 0;
+        std::tie(insn, bytes_read) = Instruction::make(word, a);
+        std::cout << insn->dump() << \'\\n\';
+        try {
+            a.incrementPc(sizeof(Instruction::wordType) + bytes_read);
+        } catch (std::out_of_range e) {
+            std::cout << "Reached EOF\\n";
+            break;
+        }
+    }
+    return 0;
+}
+"""
+
+COMPILE_OPTS = """add_compile_options(-g -O3 -std=c++0x \
+-gsplit-dwarf -fPIC -fvisibility-inlines-hidden -Wall -W \
+-Wno-unused-parameter -Wwrite-strings -Wcast-qual \
+-Wno-missing-field-initializers -pedantic -Wno-long-long \
+-Wno-maybe-uninitialized -Wdelete-non-virtual-dtor \
+-Wno-comment -std=c++11 -ffunction-sections -fdata-sections \
+-O2 -g -DNDEBUG -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS \
+-D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
+"""
+
 
 def gen_include_guards(header):
     guard_name = '_'
@@ -52,6 +88,43 @@ def add_includes_dec_src(params):
         dst.write(content)
 
 
+def generate_main_src(params):
+    dec_h = Path(params['decoder-header'])
+    main = Path(params['destpath'], 'main.cpp')
+    with main.open(mode='w') as dst:
+        dst.write('#include \"cgen-ir-common.h\"\n#include \"' +
+                  dec_h.name + '\"\n\n')
+        dst.write(MAIN_SRC)
+
+
+def generate_cmake_src(params):
+    cmake = Path(params['destpath'], 'CMakeLists.txt')
+    archPath = Path(params['arch']).resolve()
+    arch = archPath.stem.lower()
+    dec_h = Path(params['decoder-header'])
+    dec_src = Path(params['decoder-src'])
+    reg_h = Path(params['registers-header'])
+    with cmake.open(mode='w') as dst:
+        dst.write('cmake_minimum_required(VERSION 3.5)\n')
+        dst.write('project(' + arch + ' CXX)\n\n')
+        dst.write('find_package(LLVM REQUIRED CONFIG)\n\n')
+        dst.write('message(STATUS "Found LLVM '
+                  '${LLVM_PACKAGE_VERSION}")\n'
+                  'message(STATUS "Using LLVMConfig.cmake '
+                  'in: ${LLVM_DIR}")\n\n')
+        dst.write('include_directories(${LLVM_INCLUDE_DIRS})\n'
+                  'add_definitions(${LLVM_DEFINITIONS})\n\n')
+        dst.write(COMPILE_OPTS)
+        dst.write('\nset(SOURCE_FILES ' +
+                  dec_h.name + ' ' +
+                  dec_src.name + ' ' +
+                  reg_h.name + ')\n')
+        dst.write('add_executable(' + arch + ' main.cpp ${SOURCE_FILES})\n')
+        dst.write('llvm_map_components_to_libnames'
+                  '(llvm_libs support core irreader)\n'
+                  'target_link_libraries(cris ${llvm_libs})\n')
+
+
 def clang_format_all(params):
     cf_command = ('clang-format -i -style=LLVM -sort-includes ' +
                   params['destpath'] + '/*.cpp ' +
@@ -90,7 +163,15 @@ def generate_all(params):
 
     # Add include to decoder-source
     add_includes_dec_src(params)
-    print('  Added includes to decoder source')
+    print('  Added includes to decoder source...')
+
+    # Write main.cpp source file
+    generate_main_src(params)
+    print('  Generated main.cpp file...')
+
+    # Write CMakeLists.txt file
+    generate_cmake_src(params)
+    print('  Generated CMakeLists.txt file...')
 
     # Clang-format generated C++ code
     print('  Let me clang-format your sources...', end='')

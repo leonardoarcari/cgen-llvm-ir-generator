@@ -1,0 +1,60 @@
+\documentclass{article}
+% Package setup
+% HyperRef
+\usepackage{color}   %May be necessary if you want to color links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,
+    linkcolor=black,
+    urlcolor=blue
+}
+
+\begin{document}
+% Top matter
+\title{CGEN LLVM-IR \\ Design Document \vfill}
+\author{Leonardo Arcari \\ Politecnico di Milano}
+\date{February 2018}
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table of contents
+\tableofcontents
+\clearpage
+
+% Introductory section
+\pagenumbering{arabic}
+\section{Introduction}
+\subsection{Scope}
+This document is meant to provide a resource to those who are going to work with GNU CGEN and my extension to it: CGEN LLVM-IR. The purpose of this paper is to introduce the reader first to GNU CGEN from a code perspective, as GNU CGEN already provides a user guide. The reader will find in this document a code analysis, with a, possibly more clear, description of the main classes in Scheme source code in order to use them effectively.
+
+In second place, I will provide a similar description of the code that I wrote in order to extend GNU CGEN to allow the generation of C++ programs capable of translating binary programs into a semantically equivalent representation in LLVM-IR language.
+
+\subsection{Out of scope}
+In this paper I am not going to describe several topics related to GNU CGEN
+\begin{itemize}
+\item How to run GNU CGEN. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_2.html}}
+\item What are the features of GNU CGEN. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_1.html}}
+\item What is CGEN RTL and what each language feature does. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html}}
+\item How to write a CGEN application to define your CPU architecture in RTL. Guess what? There's a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_8.html}}
+\end{itemize}
+
+\subsection{Project History}
+CGEN LLVM-IR generator is part of the project I was assigned to while taking the \emph{Code Transformation and Optimization} course held by Professor G. Agosta\footnote{\url{https://home.deib.polimi.it/agosta}} in the A.Y. 2017/2018. The idea of extending GNU CGEN, in order to generate C++ translators capable of producing a semantically-equivalent representation in LLVM-IR of a binary for a given architecture, is from Alessandro Di Federico, PhD\footnote{\url{https://clearmind.me/}}. 
+
+\clearpage
+\section{GNU CGEN}
+\subsection{Introduction to CGEN}
+\subsection{CGEN RTL classes}
+\subsection{Code Analysis}
+\subsubsection{Entry Point}
+\subsubsection{RTL-C Generator}
+
+\clearpage
+\section{CGEN LLVM-IR}
+\subsection{CGEN-IR common}
+\subsection{IR-Gen registers}
+\subsection{IR-Gen decoder}
+\subsection{RTL-CPP Generator}
+\end{document}

@@ -1,0 +1,15 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Scope}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Out of scope}{section.1}% 3
+\BOOKMARK [2][-]{subsection.1.3}{Project History}{section.1}% 4
+\BOOKMARK [1][-]{section.2}{GNU CGEN}{}% 5
+\BOOKMARK [2][-]{subsection.2.1}{Introduction to CGEN}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.2}{CGEN RTL classes}{section.2}% 7
+\BOOKMARK [2][-]{subsection.2.3}{Code Analysis}{section.2}% 8
+\BOOKMARK [3][-]{subsubsection.2.3.1}{Entry Point}{subsection.2.3}% 9
+\BOOKMARK [3][-]{subsubsection.2.3.2}{RTL-C Generator}{subsection.2.3}% 10
+\BOOKMARK [1][-]{section.3}{CGEN LLVM-IR}{}% 11
+\BOOKMARK [2][-]{subsection.3.1}{CGEN-IR common}{section.3}% 12
+\BOOKMARK [2][-]{subsection.3.2}{IR-Gen registers}{section.3}% 13
+\BOOKMARK [2][-]{subsection.3.3}{IR-Gen decoder}{section.3}% 14
+\BOOKMARK [2][-]{subsection.3.4}{RTL-CPP Generator}{section.3}% 15

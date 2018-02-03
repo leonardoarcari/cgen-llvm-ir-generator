@@ -4,3 +4,7 @@ cgen/*-output
 demo/*-output
 cgen/*.h
 cgen/*.cpp
+
+# Build stuff
+**/build
+demo/

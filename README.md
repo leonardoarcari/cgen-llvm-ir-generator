@@ -8,20 +8,21 @@ Ideally, once an RTL CPU Architecture description is provided to *CGEN LLVM IR g
 Here's a brief list of tasks to be accomplished for a working prototype of the generator.
 
 - [ ] CPU registers allocation
-	- [x] Global variables allocation
-	- [ ] Test correctness towards .cpu files
+  - [x] Global variables allocation
+  - [ ] Test correctness towards .cpu files
 - [ ] Disassabler
-	- [x] Read an instruction word from a byte stream
-	- [x] Decode instruction opcode
-	- [x] Decode instruction fields into in-memory objects
-	- [x] Provide dump() facilities
-	- [ ] Test against available .cpu files
+  - [x] Read an instruction word from a byte stream
+  - [x] Decode instruction opcode
+  - [x] Decode instruction fields into in-memory objects
+  - [x] Provide dump() facilities
+  - [ ] Test against available .cpu files
 - [ ] Semantic translator
 
 ## Hands-on
-To run *CGEN LLVM IR generator* a convenient Python script is provided to hide the odds and quirks of Scheme and it's implementation in Guile.
+To run *CGEN LLVM IR generator*, a convenient Python script is provided to hide the odds and quirks of Scheme and its implementation in Guile.
 ### Prerequisites
 We assume you have a working *Guile 1.8* environment set up on your machine, with the ```guile``` executable exported in your system PATH.
+Also you are required to have *LLVM 3.8.0* (+ development headers) installed (CMake must be able to find LLVM CMake Find script).
 Optionally, you will need ```clang-format``` installed to perform code formatting on generated C++ source files.
 
 ### Running CGEN-IR:
@@ -50,9 +51,9 @@ optional arguments:
 
 You are required to provide at least:
 ```
--a ARCH 		.cpu description file path
--m MACHINE 		the machine you want to generate translators for (e.g.: arch700)
-destPath 		destination directory where to generate sources in
+-a ARCH     .cpu description file path
+-m MACHINE    the machine you want to generate translators for (e.g.: arch700)
+destPath    destination directory where to generate sources in
 ```
 
 If you want to manually specify the name of generated sources you can use _-t, -d, -r_ arguments.
@@ -67,5 +68,9 @@ $ cd build
 $ cmake ..
 $ make
 ```
+
+
+### Examples
+An example on CGEN LLVM IR generator usage is available for ARC700 architecture [here.](https://polimicg.org/gitlab/leonardo.arcari/cgen-llvm-ir-generator/tree/master/test/arc700)
 
 [1]: https://sourceware.org/cgen/

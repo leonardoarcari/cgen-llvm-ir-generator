@@ -30,13 +30,21 @@ make
 ```
 
 ## Test
-You can run the available test with CTest
+You can run the available tests in this repository with CTest
 
 ```sh
+# First build with CMake
+mkdir build
+cd build
+cmake ..
+make
+
+# Then run tests with CTest
 make test
 ```
 
 or, to get more insights on test results
 ```sh
+# Run after building with CMake as above
 ./tests --success
 ```

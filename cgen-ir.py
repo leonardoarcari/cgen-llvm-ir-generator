@@ -187,17 +187,20 @@ def build_guile_params(args):
     params['machine'] = args.machine
     params['destpath'] = args.dstPath
     if args.dec_h:
-        params['decoder-header'] = args.dstPath + args.dec_h
+        params['decoder-header'] = args.dstPath + "/" + args.dec_h
     else:
-        params['decoder-header'] = args.dstPath + target_name + 'Decoder.h'
+        params['decoder-header'] = (args.dstPath + "/" + target_name +
+                                    'Decoder.h')
     if args.dec_cpp:
-        params['decoder-src'] = args.dstPath + args.dec_cpp
+        params['decoder-src'] = args.dstPath + "/" + args.dec_cpp
     else:
-        params['decoder-src'] = args.dstPath + target_name + 'Decoder.cpp'
+        params['decoder-src'] = (args.dstPath + "/" + target_name +
+                                 'Decoder.cpp')
     if args.reg_h:
-        params['registers-header'] = args.dstPath + args.reg_h
+        params['registers-header'] = args.dstPath + "/" + args.reg_h
     else:
-        params['registers-header'] = args.dstPath + target_name + 'Registers.h'
+        params['registers-header'] = (args.dstPath + "/" + target_name +
+                                      'Registers.h')
     return params
 
 

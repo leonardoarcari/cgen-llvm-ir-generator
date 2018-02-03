@@ -1,0 +1,20 @@
+130022240422242428061b008020e0c6
+13000002
+Ld_AbsInstruction {f_op__b = 3; f_u8 = 0; f_d9h = 0; f_B_5_3 = 0; f_op_A = 2; f_op_B = 3; f_s9 = 0; }
+
+22400042
+Add_L_U6__Ra_Instruction {f_op__b = 2; f_F = 0; f_B_5_3 = 0; f_u6 = 1; f_op_A = 2; f_op_B = 2; }
+
+22420042
+Sub_L_U6__Ra_Instruction {f_op__b = 2; f_F = 0; f_B_5_3 = 0; f_u6 = 1; f_op_A = 2; f_op_B = 2; }
+
+800006
+Bcc_LInstruction {f_d21l = 64; f_d21h = 0; f_cond_Q = 6; f_rel21 = 256; }
+
+1b000080
+St_AbsInstruction {f_op__b = 3; f_u8 = 0; f_d9h = 0; f_B_5_3 = 0; f_op_C = 2; f_op_B = 3; f_s9 = 0; }
+
+20e000c6
+J_Cc___Rc_Ilink_Instruction {f_op__b = 0; f_F = 0; f_B_5_3 = 0; f_op_C = 3; f_op_Cj = 3; f_cond_Q = 6; f_op_B = 0; }
+
+Reached EOF

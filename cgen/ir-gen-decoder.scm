@@ -21,12 +21,25 @@
   (string-append
     "std::string "
     (if namespace
-      (string-append namespace "::")
-      ""
-    )
-    "dump() const"
-  )
-)
+        (string-append namespace "::")
+        ""
+        )
+    "dump() const"))
+
+; Returns C++ signature of 'getSfmt()' method of Instruction class.
+; NAMESPACE is the string of the method namespace of the method, 
+;   #f if no namespace.
+;   (e.g.: eq? NAMESPACE "AddInstruction" -> AddInstruction::parseSfmt())
+; SFMT-TYPE is the string of the type of SFormat struct in C++ that the
+;   method should return.
+
+(define (-gen-get-sfmt-proto namespace sfmt-type)
+  (string-append
+    "const " sfmt-type "& "
+    (if namespace
+        (string-append namespace "::")
+        "")
+    "getSfmt() const"))
 
 (define (-gen-insn-make-proto namespace)
   (string-append
@@ -956,6 +969,38 @@
   (string-list-map -gen-sfmt-dump (current-sfmt-list))
 )
 
+; Returns C++ code to implement the "getSfmt()" method
+; of the C++ class representing Empty <insn>
+(define (-gen-get-sfmt-empty)
+  (let* ((empty (current-insn-lookup 'x-invalid))
+         (sfmt (insn-sfmt empty)))
+    (string-append
+      (-gen-get-sfmt-proto (gen-insn-class-name empty) (gen-sfmt-class-name sfmt)) " {\n"
+      "  return sfmt;\n"
+      "}\n\n")))
+
+; Returns C++ code for the getter of the sfmt for each instruction
+
+(define (-gen-get-sfmt insn)
+  (logit 2 "Generating getSfmt() method for Instruction \""
+           (obj:name insn)
+           "\"\n")
+  (let ((sfmt (insn-sfmt insn)))
+    (string-list
+      (-gen-get-sfmt-proto (gen-insn-class-name insn) (gen-sfmt-class-name sfmt)) " {\n"
+      "  return sfmt;\n"
+      "}\n\n")))
+
+; For each instruction, implement the method 'getSfmt()' to
+; get a reference to the sfmt structure of the instruction
+
+(define (-gen-all-get-sfmt)
+  (logit 2 "Generating getSfmt() methods for Instructions")
+  (cons
+    (-gen-get-sfmt-empty)
+    (string-list-map -gen-get-sfmt
+        (non-multi-insns (real-insns (current-insn-list))))))
+
 ; Generates decoder.cpp
 
 (define (decoder.cpp)
@@ -970,6 +1015,7 @@
     (lambda () (-gen-all-insn-parse-sfmt))
     (lambda () (-gen-all-sfmt-dump))
     (lambda () (-gen-all-insn-dump))
+    (lambda () (-gen-all-get-sfmt))
   )
 )
 
@@ -1151,6 +1197,7 @@ public:
     "  " (gen-insn-class-name insn) "() {}\n"
     "  " (-gen-parse-sfmt-proto #f) ";\n"
     "  " (-gen-dump-insn-proto #f) ";\n"
+    "  " (-gen-get-sfmt-proto #f (gen-sfmt-class-name (insn-sfmt insn))) ";\n"
     "private:\n"
     ; Fields
     "  " (gen-sfmt-class-name (insn-sfmt insn)) " sfmt;\n"

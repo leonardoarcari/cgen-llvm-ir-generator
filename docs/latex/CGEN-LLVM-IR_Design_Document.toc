@@ -4,12 +4,23 @@
 \contentsline {subsection}{\numberline {1.3}Project History}{1}{subsection.1.3}
 \contentsline {section}{\numberline {2}GNU CGEN}{2}{section.2}
 \contentsline {subsection}{\numberline {2.1}Introduction to CGEN}{2}{subsection.2.1}
-\contentsline {subsection}{\numberline {2.2}CGEN RTL classes}{2}{subsection.2.2}
-\contentsline {subsection}{\numberline {2.3}Code Analysis}{2}{subsection.2.3}
-\contentsline {subsubsection}{\numberline {2.3.1}Entry Point}{2}{subsubsection.2.3.1}
-\contentsline {subsubsection}{\numberline {2.3.2}RTL-C Generator}{2}{subsubsection.2.3.2}
-\contentsline {section}{\numberline {3}CGEN LLVM-IR}{3}{section.3}
-\contentsline {subsection}{\numberline {3.1}CGEN-IR common}{3}{subsection.3.1}
-\contentsline {subsection}{\numberline {3.2}IR-Gen registers}{3}{subsection.3.2}
-\contentsline {subsection}{\numberline {3.3}IR-Gen decoder}{3}{subsection.3.3}
-\contentsline {subsection}{\numberline {3.4}RTL-CPP Generator}{3}{subsection.3.4}
+\contentsline {paragraph}{Goal}{2}{section*.2}
+\contentsline {paragraph}{Project idea}{2}{section*.3}
+\contentsline {subsection}{\numberline {2.2}CGEN RTL classes}{4}{subsection.2.2}
+\contentsline {subsubsection}{\numberline {2.2.1}CGEN's object system - cos.scm}{4}{subsubsection.2.2.1}
+\contentsline {paragraph}{Class}{4}{section*.6}
+\contentsline {paragraph}{Getters and Setters declaration}{5}{section*.9}
+\contentsline {paragraph}{Other methods declaration}{6}{section*.10}
+\contentsline {paragraph}{Method invokation}{6}{section*.12}
+\contentsline {subsubsection}{\numberline {2.2.2}Arch - mach.scm}{6}{subsubsection.2.2.2}
+\contentsline {subsubsection}{\numberline {2.2.3}Hardware - hardware.scm}{7}{subsubsection.2.2.3}
+\contentsline {subsubsection}{\numberline {2.2.4}Instruction - insn.scm}{8}{subsubsection.2.2.4}
+\contentsline {subsubsection}{\numberline {2.2.5}Ident - a common base class}{9}{subsubsection.2.2.5}
+\contentsline {subsection}{\numberline {2.3}Code Analysis}{10}{subsection.2.3}
+\contentsline {subsubsection}{\numberline {2.3.1}Entry Point}{10}{subsubsection.2.3.1}
+\contentsline {subsubsection}{\numberline {2.3.2}RTL-C Generator}{10}{subsubsection.2.3.2}
+\contentsline {section}{\numberline {3}CGEN LLVM-IR}{11}{section.3}
+\contentsline {subsection}{\numberline {3.1}CGEN-IR common}{11}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}IR-Gen registers}{11}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}IR-Gen decoder}{11}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}RTL-CPP Generator}{11}{subsection.3.4}

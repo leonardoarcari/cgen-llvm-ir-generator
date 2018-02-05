@@ -47,11 +47,12 @@
   keywordstyle=\bf\ttfamily\color[rgb]{0,.3,.7},
   commentstyle=\color[rgb]{0.133,0.545,0.133},
   stringstyle={\color[rgb]{0.75,0.49,0.07}},
+  showstringspaces=false,
   upquote=true,
   breaklines=true,
   breakatwhitespace=true,
   literate=*{`}{{`}}{1},
-  tabsize=2
+  tabsize=2,
 }
 
 \begin{document}
@@ -83,7 +84,7 @@ In this paper I am not going to describe several topics related to GNU CGEN
 \item What is CGEN RTL and what each language feature does. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html}}
 \item How to write a CGEN application to define your CPU architecture in RTL. Guess what? There's a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_8.html}}
 \end{itemize}
-Also, a pre-requisite to understand completely this document, the reader should know Lisp in one of its dialects. For soundness, be aware that CGEN is written in Scheme in the dialect implemented by Guile 1.8.0.
+Also, as a pre-requisite to completely understand this document, the reader should know Lisp in one of its many dialects. For soundness, be aware that CGEN is written in Scheme in the dialect implemented by Guile 1.8.
 
 \subsection{Project History}
 CGEN LLVM-IR generator is part of the project I was assigned to while taking the \emph{Code Transformation and Optimization} course held by Professor G. Agosta\footnote{\url{https://home.deib.polimi.it/agosta}} in the A.Y. 2017/2018. The idea of extending GNU CGEN, in order to generate C++ translators capable of producing a semantically-equivalent representation in LLVM-IR of a binary for a given architecture, is from Alessandro Di Federico, PhD\footnote{\url{https://clearmind.me/}}. 
@@ -123,7 +124,7 @@ So language parsing and data structures were there to be used. We could not say 
 It should be noted that GDB simulators are C programs, so CGEN was coded to emit C lines of code. Those components would have been a great reference for the logic that drives disassembling and instruction simulation, but they were required to be completely rewritten to emit C++ code. Unfortunately the C code generation was so tightly coupled in them that we had to write a whole new set of components to address our needs. More details are provided in section \ref{sec:cgen-llvm-ir}.
 \clearpage
 
-\subsection{CGEN RTL classes}
+\subsection{CGEN RTL classes} \label{sec:rtl-classes}
 In this part of the document I want to provide an insight of Scheme classes in CGEN that represent internally the language constructs of RTL and allow the programmer to access the data written in the CPU description file.
 
 To better understand the relationship between classes, I first present an example of the structure of an RTL description.
@@ -307,7 +308,7 @@ After parsing a .cpu file the programmer can refer to a global variable named \t
 	\caption{Class diagram of <arch> CGEN class}
 \end{figure}
 
-\subsubsection{Hardware - hardware.scm}
+\subsubsection{Hardware - hardware.scm} \label{sec:hardware}
 \texttt{<hardware-base>} is the base class for all hardware descriptions. The actual hardware objects inherit from this (e.g. register, immediate). This is used to describe registers, memory, and immediates.
 
 \texttt{mode} in diagram \ref{fig:hw-base} refers to one of the many data types you can specify in RTL. \href{https://sourceware.org/cgen/docs/cgen_3.html\#SEC161}{Look here for more information}.
@@ -407,9 +408,164 @@ One thing I did not mention so far is that every class described in this section
 \clearpage
 
 \subsection{Code Analysis}
-\subsubsection{Entry Point}
-\subsubsection{RTL-C Generator}
+In this section I want to give an analysis on GNU CGEN execution flow from the program launch to the entry of the various components. This should help the programmer to know what source files to edit if they want extended CGEN functionalities and be able to call them from command line.
 
+In section \ref{sec:entryPoint} I am discussing about the command line interface the user exploits to run CGEN applications (e.g. simulators, disassembler, toolchain) and how to add new applications to it.
+
+In section \ref{sec:rtl-c} I am providing some insights on how CGEN generates C code from an RTL expression. Even though CGEN LLVM-IR is unrelated to this component, the program logic to emit C++ or LLVM-IR code is just the same, so we better learn from the wise GNU CGEN author and contemplate.
+
+\textbf{Note for the reader}: for the rest of this section I am writing about GNU CGEN project only, not CGEN LLVM-IR. This allows me to refer to files and procedure whose names are stable and reliable. Same concepts described hereinafter apply to CGEN LLVM-IR too. Still I am discussing about my project execution flow in section \ref{sec:cgen-llvm-ir}.
+
+\subsubsection{Entry Point} \label{sec:entryPoint}
+Let us begin with an example on how CGEN is run from command line
+
+\begin{figure}[H]
+\begin{lstlisting}
+guile -l guile.scm cgen-sim.scm # lots of parameters
+\end{lstlisting}
+\end{figure}
+
+With parameter \texttt{-l} we are kindly asking \texttt{Guile} to load the following source files: \texttt{guile.scm} and \texttt{cgen-sim.scm}. What is happening? We should forget \texttt{guile.scm} since it ``only'' sets some debugging variables in Guile for CGEN and shift our focus on \texttt{cgen-sim.scm}. 
+
+\texttt{cgen-sim.scm} is one of the many CGEN applications that are part of the GNU project. According to its name, it is responsible to generate \texttt{GDB} simulators for a given architecture. And here we find our first takehome lesson: do you want to extend CGEN for another purpose? Provide an application source file. In fact if we take look inside \texttt{cgen-sim.scm} we read code for:
+\begin{itemize}
+\item Setting up \textbf{init, clean-up and analyze} procedures
+\item Loading \textbf{additional source} files
+\item Handling command line \textbf{parameters}
+\end{itemize}
+
+\paragraph{read.scm}
+One little thing I should mention is the importance of this line of code:
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(load (string-append srcdir "/read.scm"))
+\end{lstlisting}
+\end{figure}
+
+Without going in too much details, \texttt{read.scm} loads all the Scheme source files to internally represent RTL language constructs (some of them were mentioned in section \ref{sec:rtl-classes}) and runs their \texttt{init procedures}. The ordering in which those procedure calls are done is meaningful and things blow up in no time. So I strongly advice the reader to simply add the above line of code in their CGEN application sources and forget about it.
+
+\paragraph{argv}
+The last thing I am mentioning is how command line parameters are defined and handled. Within \texttt{read.scm} a procedure named \texttt{cgen} is defined. Its purpose is to gather all those launch parameters I was referring to a few lines above. A sample of its invokation is provided:
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(cgen
+	#:argv argv
+	#:app-name "sim"
+	#:arg-spec sim-arguments
+	; Init procedure
+	#:init sim-init!
+	; Clean-up procedure
+	#:finish sim-finish!
+	; General purpose .cpu file
+	; analysis routine, not used
+	; in general
+	#:analyze sim-analyze!))
+\end{lstlisting}
+\end{figure}
+
+A careful eye must have spot the atom \texttt{sim-arguments}. That is our procedure name setting up the CGEN application command line parameters handlers. The programmer can provide their own implementation. A sample if provided hereinafter.
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(define sim-arguments
+	(list
+		(list "-A" "file" "generate arch.h in <file>"
+			#f
+	 		(lambda (arg) (file-write arg cgen-arch.h)))
+	 	; other params...
+	 )
+\end{lstlisting}
+\end{figure}
+
+A bit of documentation:
+\begin{description}
+\item["-A"] Command line argument.
+\item["file"] The formal parameter name following argument \texttt{-A}.
+\item["generate..."] Argument description.
+\item[\#f] You can place a string comment instead.
+\item[arg] The actual value for formal parameter \texttt{file}. Its value is the one passed from the command line.
+\end{description}
+
+Just because it took me a while to figure it how, note that \texttt{cgen-arch.h} is a procedure and it returns the C code to write on file \texttt{arg}.
+
+\subsubsection{RTL-C Generator} \label{sec:rtl-c}
+In this section I want to write about the architecture of \texttt{rtl-c.scm}, the component to generate C code given an RTL expression as input. Even if very unlikely, after all RTL is very popular nowadays, I recommend a refresh on the language features for a better understanding\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC47}}.
+
+Let us start from a user perspective. I have an RTL expression
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(add SI (const SI 1) (const SI 2))
+\end{lstlisting}
+\end{figure}
+
+and I want to compile it into C code I simply run 
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(rtl-c
+	; Expression mode
+	DFLT
+	; RTL expression
+	'(add SI (const SI 1) (const SI 2))
+	nil)
+\end{lstlisting}
+\end{figure}
+
+and I get a C expression (you can tell we are true because it is a macro)
+
+\begin{figure}[H]
+\begin{lstlisting}
+ADDSI (1, 2)
+\end{lstlisting}
+\end{figure}
+
+So far so good. Now we want to dig a little bit deeper and understand what is going on. First of all, the output we got is part of the \texttt{<c-expr>} class
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, caption=Part of <c-expr> class declaration]
+(define <c-expr>
+	(class-make '<c-expr> nil
+		'(
+			; The mode of C-CODE.
+			mode
+			; The translated C code.
+			c-code
+			; The source expression, for debugging.
+			expr
+			; other things follow...
+		)
+		nil))
+\end{lstlisting}
+\end{figure}
+
+\texttt{<c-expr>} class is ubiquitous in \texttt{rtl-c.scm} component because it ties together RTL and C code. We now ask ourselves how its fields are filled in.
+
+\paragraph{RTL$\rightarrow$C generators}
+First of all, when an RTL expression is passed to \texttt{rtl-c} it gets compiled by \texttt{rtl.scm} component which I am not discussing in this document. Afterward, RTL expression is translated into C by means of a \textbf{translation table} that maps each RTL operation to a Scheme procedure to handle it. Within \texttt{rtl-c.scm} this table is named \texttt{-rtl-c-gen-table} and I mention it because it is \textbf{the key} to implement the translation from RTL to another language. The programmer must provide a map similar to this and most of the code in \texttt{rtl-c.scm} can be left unchanged\footnote{Well, actually you have to write a copy of it, changing most of the procedure names because there is no overloading in Scheme. Still, though tedious, it is better than writing it from scratch}. This is a huge gain in terms of code reusage and CGEN author must be praised for this.
+
+\paragraph{Get and set hardware}
+In RTL the programmer can assign values to hardware elements and read from them. This is a key feature to allow the description of instruction semantics or complex disassembling procedures. So how do we deal with it in emitting C code? Hardware get/set is handled by means of class methods. In fact each hardware class\footnote{Section \ref{sec:hardware}} must answer to the following messages
+\begin{description}
+\item[get-mode] Return mode of the hardware element.
+\item[cxmake-get] Return a \texttt{<c-expr>} to get its value.
+\item[gen-set-quiet] Return string of C code to set operand's value (no tracing).
+\item[gen-set-trace] Return string of C code to set operand's value.
+\end{description}
+
+This was each ``complex'' operand emits the C code for reading and writing its value(s).
+
+\subsection{Conclusions}
+In this section we went through many aspects of the design of GNU CGEN and what conventions its author adopted. I mentioned only those aspects that I found relevant in extending CGEN for our purposes, many other parts of CGEN are still unknown to me. Still, being gone through all of this provides us all the knowledge we need to understand CGEN LLVM-IR, what extensions I made and how I designed the translators CGEN LLVM-IR can generate.
+\vfill
+
+\begin{figure}[H]
+  \centering
+    \includegraphics[width=1.0\textwidth]{path_2}
+  \caption{``Over every mountain there is a path, although it may not be seen from the valley.'' \emph{(Theodore Roethke)}}
+  \label{fig:gull}
+\end{figure}
 \clearpage
 \section{CGEN LLVM-IR} \label{sec:cgen-llvm-ir}
 \subsection{CGEN-IR common}

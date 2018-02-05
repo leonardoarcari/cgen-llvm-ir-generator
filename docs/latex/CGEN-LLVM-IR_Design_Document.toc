@@ -18,9 +18,14 @@
 \contentsline {subsubsection}{\numberline {2.2.5}Ident - a common base class}{9}{subsubsection.2.2.5}
 \contentsline {subsection}{\numberline {2.3}Code Analysis}{10}{subsection.2.3}
 \contentsline {subsubsection}{\numberline {2.3.1}Entry Point}{10}{subsubsection.2.3.1}
-\contentsline {subsubsection}{\numberline {2.3.2}RTL-C Generator}{10}{subsubsection.2.3.2}
-\contentsline {section}{\numberline {3}CGEN LLVM-IR}{11}{section.3}
-\contentsline {subsection}{\numberline {3.1}CGEN-IR common}{11}{subsection.3.1}
-\contentsline {subsection}{\numberline {3.2}IR-Gen registers}{11}{subsection.3.2}
-\contentsline {subsection}{\numberline {3.3}IR-Gen decoder}{11}{subsection.3.3}
-\contentsline {subsection}{\numberline {3.4}RTL-CPP Generator}{11}{subsection.3.4}
+\contentsline {paragraph}{read.scm}{10}{section*.19}
+\contentsline {paragraph}{argv}{11}{section*.21}
+\contentsline {subsubsection}{\numberline {2.3.2}RTL-C Generator}{12}{subsubsection.2.3.2}
+\contentsline {paragraph}{RTL$\rightarrow $C generators}{13}{section*.28}
+\contentsline {paragraph}{Get and set hardware}{13}{section*.29}
+\contentsline {subsection}{\numberline {2.4}Conclusions}{14}{subsection.2.4}
+\contentsline {section}{\numberline {3}CGEN LLVM-IR}{15}{section.3}
+\contentsline {subsection}{\numberline {3.1}CGEN-IR common}{15}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}IR-Gen registers}{15}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}IR-Gen decoder}{15}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}RTL-CPP Generator}{15}{subsection.3.4}

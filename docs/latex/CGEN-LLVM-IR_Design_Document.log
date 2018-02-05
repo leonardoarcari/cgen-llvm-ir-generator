@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.2.3)  4 FEB 2018 22:08
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.2.3)  5 FEB 2018 12:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -847,27 +847,27 @@ Package textcomp Info: Setting ptmj sub-encoding to TS1/4 on input line 409.
 (./CGEN-LLVM-IR_Design_Document.aux)
 \openout1 = `CGEN-LLVM-IR_Design_Document.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 57.
-LaTeX Font Info:    ... okay on input line 57.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 57.
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 57.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 58.
+LaTeX Font Info:    ... okay on input line 58.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 58.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 58.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    ... okay on input line 58.
 
 ABD: EveryShipout initializing macros
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -905,7 +905,7 @@ Package caption Info: hyperref package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \AtBeginShipoutBox=\box103
-Package hyperref Info: Link coloring ON on input line 57.
+Package hyperref Info: Link coloring ON on input line 58.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
@@ -915,9 +915,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count180
 )
-LaTeX Info: Redefining \ref on input line 57.
-LaTeX Info: Redefining \pageref on input line 57.
-LaTeX Info: Redefining \nameref on input line 57.
+LaTeX Info: Redefining \ref on input line 58.
+LaTeX Info: Redefining \pageref on input line 58.
+LaTeX Info: Redefining \nameref on input line 58.
 
 (./CGEN-LLVM-IR_Design_Document.out) (./CGEN-LLVM-IR_Design_Document.out)
 \@outlinefile=\write5
@@ -925,11 +925,11 @@ LaTeX Info: Redefining \nameref on input line 57.
 
 \c@lstlisting=\count181
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 63.
+(Font)              <12> on input line 64.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 63.
+(Font)              <8> on input line 64.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 63.
+(Font)              <6> on input line 64.
 
 [1
 
@@ -946,7 +946,7 @@ LaTeX Font Info:    External font `cmex10' loaded for size
  [2
 
 ]
-LaTeX Font Info:    Try loading font information for T1+cmtt on input line 81.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 82.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
@@ -954,85 +954,97 @@ File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
  been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.91 \clearpage
+l.92 \clearpage
                 [1
 
 ]pdfTeX warning (ext4): destination with the same identifier (name{page.2}) has
  been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.119 W
+l.120 W
        e discovered that the frontend part of CGEN could be easily reused. F...
 [2
 
 ] [3]
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 134.
+(Font)              <9> on input line 135.
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
-nput line 180.
+nput line 181.
  [4
 
 ]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 204.
-LaTeX Font Info:    Try loading font information for TS1+cmtt on input line 206
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 205.
+LaTeX Font Info:    Try loading font information for TS1+cmtt on input line 207
 .
  (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmtt.fd
 File: ts1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 ) [5]
 [6] [7]
-Overfull \hbox (1.4606pt too wide) in paragraph at lines 352--353
+Overfull \hbox (1.4606pt too wide) in paragraph at lines 353--354
 \T1/cmtt/m/n/10 <rtx-func> \T1/cmr/m/n/10 ob-ject rep-re-sent-ing the RTL ex-pr
 es-sion in Scheme. The \T1/cmtt/m/n/10 <rtx-func>
  []
 
 [8] [9] [10
 
-] [11
+] [11] [12] [13] <path_2.jpg, id=419, 2055.68pt x 1284.8pt>
+File: path_2.jpg Graphic file (type jpg)
+
+<use path_2.jpg>
+Package pdftex.def Info: path_2.jpg used on input line 565.
+(pdftex.def)             Requested size: 345.0pt x 215.60968pt.
+ [14 <./path_2.jpg>] [15
 
 ]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 419.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 419.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 575.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 575.
  (./CGEN-LLVM-IR_Design_Document.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 419.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 419.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 575.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 575.
 Package rerunfilecheck Info: File `CGEN-LLVM-IR_Design_Document.out' has not ch
 anged.
-(rerunfilecheck)             Checksum: 8655D42B72751AF5EE199C6220767842;1336.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 419.
+(rerunfilecheck)             Checksum: 4387F274DED6CF3E833E79FA8E20ADC8;1397.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 575.
  ) 
 Here is how much of TeX's memory you used:
- 23553 strings out of 494902
- 477914 string characters out of 6179892
- 659336 words of memory out of 5000000
- 26364 multiletter control sequences out of 15000+600000
+ 23672 strings out of 494902
+ 479411 string characters out of 6179892
+ 660706 words of memory out of 5000000
+ 26410 multiletter control sequences out of 15000+600000
  18774 words of font info for 44 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 62i,11n,84p,730b,1359s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/tct
-t0900.600pk>{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-t1.enc} </home/
-leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt0900.600p
-k> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecr
-m0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
-pen/ec/ecbx0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/lj
-four/jknappen/ec/ectt0800.600pk> </home/leonardoarcari/.texlive2016/texmf-var/f
-onts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/leonardoarcari/.texlive2016/t
-exmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0700.600pk>{/usr/share/texmf/fonts/enc
-/dvips/cm-super/cm-super-ts1.enc} </home/leonardoarcari/.texlive2016/texmf-var/
-fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/leonardoarcari/.texlive2016/
-texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/leonardoarcari/.te
-xlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </home/leonardo
-arcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1728.600pk></usr/
-share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/
-texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf/fonts/ty
-pe1/public/cm-super/sfbx1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/
-sfrm1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb></usr/s
-hare/texmf/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on CGEN-LLVM-IR_Design_Document.pdf (13 pages, 240288 bytes).
+ 62i,11n,84p,946b,1361s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecr
+m0800.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
+pen/ec/tctt0900.600pk>{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-t1.en
+c} </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ect
+t0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
+pen/ec/ecrm0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/lj
+four/jknappen/ec/ecbx0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/f
+onts/pk/ljfour/jknappen/ec/ectt0800.600pk> </home/leonardoarcari/.texlive2016/t
+exmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/leonardoarcari/.tex
+live2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0700.600pk>{/usr/share/texmf
+/fonts/enc/dvips/cm-super/cm-super-ts1.enc} </home/leonardoarcari/.texlive2016/
+texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/leonardoarcari/.te
+xlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/leonardo
+arcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </hom
+e/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1728.60
+0pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
+usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/tex
+live/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf/font
+s/type1/public/cm-super/sfbx1000.pfb></usr/share/texmf/fonts/type1/public/cm-su
+per/sfrm1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb></u
+sr/share/texmf/fonts/type1/public/cm-super/sftt1000.pfb>
+Output written on CGEN-LLVM-IR_Design_Document.pdf (17 pages, 559473 bytes).
 PDF statistics:
- 697 PDF objects out of 1000 (max. 8388607)
- 374 compressed objects within 4 object streams
- 113 named destinations out of 1000 (max. 500000)
- 269 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 865 PDF objects out of 1000 (max. 8388607)
+ 487 compressed objects within 5 object streams
+ 183 named destinations out of 1000 (max. 500000)
+ 282 words of extra memory for PDF output out of 10000 (max. 10000000)
 

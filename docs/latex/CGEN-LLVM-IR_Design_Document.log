@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.2.3)  5 FEB 2018 12:55
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.2.3)  5 FEB 2018 19:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -988,63 +988,77 @@ es-sion in Scheme. The \T1/cmtt/m/n/10 <rtx-func>
 
 [8] [9] [10
 
-] [11] [12] [13] <path_2.jpg, id=419, 2055.68pt x 1284.8pt>
+] [11] [12] [13] <path_2.jpg, id=425, 2055.68pt x 1284.8pt>
 File: path_2.jpg Graphic file (type jpg)
 
 <use path_2.jpg>
 Package pdftex.def Info: path_2.jpg used on input line 565.
 (pdftex.def)             Requested size: 345.0pt x 215.60968pt.
- [14 <./path_2.jpg>] [15
+ [14 <./path_2.jpg>]
+Missing character: There is no C in font nullfont!
+Missing character: There is no G in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no G in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no N in font nullfont!
+ [15
+
+] [16] [17] [18]
+Underfull \hbox (badness 10000) in paragraph at lines 712--712
+[][][][][]$\T1/cmtt/m/n/8 https : / / www . synopsys . com / designware-[]ip / 
+processor-[]solutions / arc-[]processors /
+ []
+
+[19
 
 ]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 575.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 575.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 714.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 714.
  (./CGEN-LLVM-IR_Design_Document.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 575.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 575.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 714.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 714.
 Package rerunfilecheck Info: File `CGEN-LLVM-IR_Design_Document.out' has not ch
 anged.
-(rerunfilecheck)             Checksum: 4387F274DED6CF3E833E79FA8E20ADC8;1397.
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 575.
+(rerunfilecheck)             Checksum: 8F3107C34D89A69A1E7026C666BEC540;1492.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 714.
  ) 
 Here is how much of TeX's memory you used:
- 23672 strings out of 494902
- 479411 string characters out of 6179892
- 660706 words of memory out of 5000000
- 26410 multiletter control sequences out of 15000+600000
- 18774 words of font info for 44 fonts, out of 8000000 for 9000
+ 24782 strings out of 494902
+ 510456 string characters out of 6179892
+ 686194 words of memory out of 5000000
+ 27506 multiletter control sequences out of 15000+600000
+ 19460 words of font info for 45 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 62i,11n,84p,946b,1361s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecr
-m0800.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
-pen/ec/tctt0900.600pk>{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-t1.en
-c} </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ect
-t0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
-pen/ec/ecrm0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/lj
-four/jknappen/ec/ecbx0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/f
-onts/pk/ljfour/jknappen/ec/ectt0800.600pk> </home/leonardoarcari/.texlive2016/t
-exmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/leonardoarcari/.tex
-live2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0700.600pk>{/usr/share/texmf
-/fonts/enc/dvips/cm-super/cm-super-ts1.enc} </home/leonardoarcari/.texlive2016/
-texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/leonardoarcari/.te
-xlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/leonardo
-arcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </hom
-e/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1728.60
-0pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/sha
-re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/tex
-live/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf/font
-s/type1/public/cm-super/sfbx1000.pfb></usr/share/texmf/fonts/type1/public/cm-su
-per/sfrm1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb></u
-sr/share/texmf/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on CGEN-LLVM-IR_Design_Document.pdf (17 pages, 559473 bytes).
+ 62i,13n,84p,946b,1541s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ect
+i0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
+pen/ec/ecrm0800.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/lj
+four/jknappen/ec/tctt0900.600pk>{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-s
+uper-t1.enc} </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknap
+pen/ec/ectt0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/lj
+four/jknappen/ec/ecrm0900.600pk> </home/leonardoarcari/.texlive2016/texmf-var/f
+onts/pk/ljfour/jknappen/ec/ecbx0900.600pk> </home/leonardoarcari/.texlive2016/t
+exmf-var/fonts/pk/ljfour/jknappen/ec/ectt0800.600pk> </home/leonardoarcari/.tex
+live2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/leonardoa
+rcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0700.600pk>{/usr/s
+hare/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc} </home/leonardoarcari/.te
+xlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/leonardo
+arcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </hom
+e/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.60
+0pk> </home/leonardoarcari/.texlive2016/texmf-var/fonts/pk/ljfour/jknappen/ec/e
+crm1728.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmm
+i10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
+></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr
+/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/
+texmf/fonts/type1/public/cm-super/sfbx1000.pfb></usr/share/texmf/fonts/type1/pu
+blic/cm-super/sfrm1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti10
+00.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1000.pfb>
+Output written on CGEN-LLVM-IR_Design_Document.pdf (21 pages, 596991 bytes).
 PDF statistics:
- 865 PDF objects out of 1000 (max. 8388607)
- 487 compressed objects within 5 object streams
- 183 named destinations out of 1000 (max. 500000)
- 282 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 970 PDF objects out of 1000 (max. 8388607)
+ 529 compressed objects within 6 object streams
+ 196 named destinations out of 1000 (max. 500000)
+ 290 words of extra memory for PDF output out of 10000 (max. 10000000)
 

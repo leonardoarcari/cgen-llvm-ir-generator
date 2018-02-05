@@ -15,7 +15,8 @@
 \BOOKMARK [3][-]{subsubsection.2.3.2}{RTL-C Generator}{subsection.2.3}% 15
 \BOOKMARK [2][-]{subsection.2.4}{Conclusions}{section.2}% 16
 \BOOKMARK [1][-]{section.3}{CGEN LLVM-IR}{}% 17
-\BOOKMARK [2][-]{subsection.3.1}{CGEN-IR common}{section.3}% 18
-\BOOKMARK [2][-]{subsection.3.2}{IR-Gen registers}{section.3}% 19
-\BOOKMARK [2][-]{subsection.3.3}{IR-Gen decoder}{section.3}% 20
-\BOOKMARK [2][-]{subsection.3.4}{RTL-CPP Generator}{section.3}% 21
+\BOOKMARK [2][-]{subsection.3.1}{Introduction to CGEN LLVM-IR}{section.3}% 18
+\BOOKMARK [2][-]{subsection.3.2}{CGEN LLVM-IR components}{section.3}% 19
+\BOOKMARK [2][-]{subsection.3.3}{Translators design}{section.3}% 20
+\BOOKMARK [2][-]{subsection.3.4}{CGEN-IR commons}{section.3}% 21
+\BOOKMARK [2][-]{subsection.3.5}{Where to go from here?}{section.3}% 22

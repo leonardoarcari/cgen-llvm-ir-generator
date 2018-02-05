@@ -25,7 +25,10 @@
 \contentsline {paragraph}{Get and set hardware}{13}{section*.29}
 \contentsline {subsection}{\numberline {2.4}Conclusions}{14}{subsection.2.4}
 \contentsline {section}{\numberline {3}CGEN LLVM-IR}{15}{section.3}
-\contentsline {subsection}{\numberline {3.1}CGEN-IR common}{15}{subsection.3.1}
-\contentsline {subsection}{\numberline {3.2}IR-Gen registers}{15}{subsection.3.2}
-\contentsline {subsection}{\numberline {3.3}IR-Gen decoder}{15}{subsection.3.3}
-\contentsline {subsection}{\numberline {3.4}RTL-CPP Generator}{15}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.1}Introduction to CGEN LLVM-IR}{15}{subsection.3.1}
+\contentsline {paragraph}{Goal}{15}{section*.31}
+\contentsline {paragraph}{Overview}{15}{section*.32}
+\contentsline {subsection}{\numberline {3.2}CGEN LLVM-IR components}{16}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Translators design}{17}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}CGEN-IR commons}{19}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.5}Where to go from here?}{19}{subsection.3.5}

@@ -568,8 +568,147 @@ In this section we went through many aspects of the design of GNU CGEN and what 
 \end{figure}
 \clearpage
 \section{CGEN LLVM-IR} \label{sec:cgen-llvm-ir}
-\subsection{CGEN-IR common}
-\subsection{IR-Gen registers}
-\subsection{IR-Gen decoder}
-\subsection{RTL-CPP Generator}
+\subsection{Introduction to CGEN LLVM-IR}
+In this section I am presenting CGEN LLVM-IR, its goal and a high level overview of the components required to achieve such goal.
+
+\paragraph{Goal}
+The goal of CGEN LLVM-IR is to provide a software to generate binary translators. A binary translator is a program that takes a binary executable as input and outputs a semantically-equivalent translation of that program in another language. In our scenario, the output language is LLVM-IR\footnote{\url{https://llvm.org/docs/LangRef.html}}. The choice is driven by the already available set of LLVM compiler backends to target a wide set of architectures, but it could also be decompiled into higher level languages to restore the source code of that program or even a ``porting'' to another language. A lot of things are possible once we have a working LLVM-IR translation, so let us move toward it.
+
+\paragraph{Overview}
+In order to achieve such ambitious goal we can sketch an outline of the required components and their logical functionalities for the \textbf{binary translators} to generate:
+\begin{description}
+\item[Architecture emulation] Programs are compiled to run on an architecture that in general provides a set of memory locations (registers). Because we want to translate it into another language we need to emulate the presence of such registers. So the idea was to allocate a set of LLVM-IR global variables to mock general purpose registers, program counter and CPU status registers. This way any instruction working on memory elements would interact with logical variables instead.
+\item[Disassembler] We are targeting binary programs as input. Therefore we need to disassemble the binary input stream to reconstruct in memory what are the assembly instructions and their operands.
+\item[Translation] Through LLVM framework, emit LLVM-IR code that mimics the semantic of each istruction and reads/sets our \emph{mock registers} correctly.
+\end{description}
+
+So far so good. This was done many times in the past and decompilers such that already exist. There is something to mention, though: most of the decompilers available today are coded fixing the input architecture and the output language. For every architecture we want to support we must build from scratch a new decompiler. Wouldn't it be great to have a way to simply \emph{describe the architecture in a problem agnostic way} and have a software to generate such decompiler for us? Now that sounds interesting. Our idea was then to pickup GNU CGEN and its architecture agnosticity and extend it to generate decompilers for a given input \emph{cpu description}.
+
+\subsection{CGEN LLVM-IR components}
+From a component level perspective this is how CGEN LLVM-IR was designed
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\begin{umlpackage}{CGEN}
+		\begin{umlcomponent}{CGEN LLVM-IR}
+		\umlbasiccomponent{cgen-ir}
+		\umlbasiccomponent[x=3, y=-2]{ir-gen-registers}
+		\umlbasiccomponent[x=3, y=-4.5]{ir-gen-decoder}
+		\umlbasiccomponent[x=7, y=-4.5]{rtl-cpp}
+		\umlbasiccomponent[x=3, y=-7]{ir-gen-llvm}
+		\umlbasiccomponent[x=7, y=-7]{rtl-llvm}
+		\end{umlcomponent}
+		\end{umlpackage}
+		
+		\umlprovidedinterface[interface=command-line, distance=2.3cm]{cgen-ir}
+		
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-registers}
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-decoder}
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-llvm}
+		\umlassemblyconnector[interface=C++]{ir-gen-decoder}{rtl-cpp}
+		\umlassemblyconnector[interface=LLVM]{ir-gen-llvm}{rtl-llvm}
+	\end{tikzpicture}
+	\caption{Component diagram of CGEN LLVM-IR}
+\end{figure}
+
+\begin{description}
+\item[cgen-ir] The application entry point. It accepts command-line parameters to drive the execution of the \emph{ir-gen-*} components.
+\item[ir-gen-registers] Generates a C++ source file exploiting LLVM framework to allocate LLVM-IR global variables that emulate the input architecture registers.
+\item[ir-gen-decoder] Generates C++ sources to define C++ classes that internally represent the assembly instructions for the input architecture and their operands. More details on the generated translator design in section \ref{sec:cpp-trans}.
+\item[rtl-cpp] Translates RTL into C++ code. This is the lower level of translation, where each RTL instruction is translated into C++ code that executes the RTL instruction semantics. E.g. \texttt{(add SI (const SI 1) (const SI 2))} is translated into a template function call \texttt{Add(1, 2)} which actually computes the \emph{sum between 1 and 2}.
+\item[ir-gen-llvm] Generates C++ sources to implement those functions that emit LLVM-IR code semantically equivalent to a given assembly instruction for the input architecture. \textbf{This component is not implemented yet}.
+\item[rtl-llvm] Generates C++ code that emits LLVM-IR code that is a translation of input RTL. This is a higher level of translation, because a given RTL expression \texttt{e} has to be translated into code that generates code semantically equivalent to \texttt{e}. \textbf{This component is not implemented yet}.
+\end{description}
+
+\subsection{Translators design} \label{sec:cpp-trans}
+Another design factor of CGEN LLVM-IR is how the generated translators are structured. During the early stages of development I had to go through a huge amount of C code generated by GNU CGEN for simulators to learn and understand which path could be followed in my project. It was a nightmare for sure. C is very far from being self-expressive, even less if it is machine generated.
+
+In my project I wanted generated C++ sources to be as human-readable as possible. C++ allows to structure your code in an object-oriented fashion, introducing abstractions to let the programmer stay sane. In addition I was not sure about the successful outcome of CGEN LLVM-IR and I forsaw that I would have had to edit the generated translators manually to test the many ways of doing things. I was, and still I am not, an expert in managing such low-level data so I needed a solution to abstract details away and encapsulate them in higher level components.
+
+The class architecture I came up with is shown in figure \ref{fig:trans-insns}.
+
+Hereinafter I am providing a rationale that drove this design.
+\begin{description}
+\item[Instruction::make()] A \emph{factory method} to instantiate an implementation of Instruction. Let us set the following scenario: In disassembling a binary program all you have is a stream of bytes. Say you know the instruction length, \texttt{L}. You take the first \texttt{L} bytes of the stream that form a \texttt{word}. Now you check the first bytes of the \texttt{word} to understand what instruction that \texttt{word} is, say it is an \texttt{AddInstruction}. Ok, \texttt{AddInstruction} is dissassembled doing this and that. Now repeat. Next instruction is a \texttt{LoadInstruction}. Oh, I have to disassemble it in that other way. And so on and so forth.
+
+I see a lot of room for \emph{Strategy pattern} here. How about having a \emph{factory method} that only checks the first bytes of a \texttt{word} to understand what instruction that \texttt{word} represents and \emph{delegates} the decoding to the corresponding class? And here it comes \texttt{parseSfmt()}.
+\item[parseSfmt()] A \emph{strategy method}, \texttt{virtual} in the base class and implemented by each concrete \texttt{Instruction} derived class. Its purpose is straightforward: take the instruction \texttt{word}, disassemble it and fill the class members with the decoded values. This is possible because when \texttt{parseSfmt()} is invoked we know what assembly instruction those bytes represent.
+\item[wordType trait] The type of an instruction word (e.g. \texttt{uint32\_t}).
+\item[chuckType trait] The type of a word chuck (e.g. \texttt{uint16\_t}). Some architectures require a word to be read from byte stream at chunks of smaller size.
+\item[endianness trait] The endiannes of the architecture.
+\end{description}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, type=abstract, name=Instruction]{Instruction}{
+			+ wordType : type \\
+			+ chunkType : type \\
+			+ endianness : llvm::endianness
+		}{
+			\umlstatic{+ make(rawInstruction : uint32\_t) : unique\_ptr<Instruction>} \\
+			\umlvirt{+ parseSfmt()} \\
+			\umlvirt{+ dump() : string}
+		}
+	
+		\umlclass[x=-3, y=-4, name=AddInstr]{AddInstr}{}{
+			+ parseSfmt() \\
+			+ dump() : string \\
+			+ getSfmt() : AddSFormat
+		}
+		\umlclass[x=3, y=-4, name=SubInstr]{SubInstr}{}{
+			+ parseSfmt() \\
+			+ dump() : string \\
+			+ getSfmt() : SubSFormat
+		}
+		
+		\umlclass[x=-3, y=-8, name=AddSFormat]{AddSFormat}{
+			+ field\_a : uint32\_t \\
+			+ field\_b : uint32\_t \\
+			+ field\_c : uint32\_t
+		}{
+			+ dump() : string
+		}
+		\umlclass[x=3, y=-8, name=SubSFormat]{SubSFormat}{
+			+ field\_a : uint32\_t \\
+			+ field\_b : uint32\_t \\
+			+ field\_c : uint32\_t
+		}{
+			+ dump() : string
+		}
+		
+		\umlimpl{AddInstr}{Instruction}
+		\umlimpl{SubInstr}{Instruction}
+		\umlunicompo[mult=1]{AddInstr}{AddSFormat}
+		\umlunicompo[mult=1]{SubInstr}{SubSFormat}
+	\end{tikzpicture}
+	\caption{Translators design - Instructions and their formats}
+	\label{fig:trans-insns}
+\end{figure}
+\clearpage
+
+\subsection{CGEN-IR commons}
+In order to support the translators execution a I wrote the \texttt{cgen-ir-common.h} source file to define those functions common to all generated translators. They support the input binary reading and the decompilation step by means of \texttt{template functions}.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, type=abstract, name=CgenIRContext]{CgenIRContext}{
+			- binary\_program : char * \\
+			- program\_counter : char *
+		}{
+			+ readWord<T, ChunkType, Endianness>() : T \\
+			+ hasNext() : bool
+			+ incrementPc(byte : size\_t)
+		}
+	\end{tikzpicture}
+	\caption{CGEN LLVM-IR translation context}
+\end{figure}
+
+\subsection{Where to go from here?}
+At the moment of writing the development of CGEN LLVM-IR stopped at a working disassembling feature. Possible future steps could be implementing the \texttt{ir-gen-llvm} and \texttt{rtl-llvm} components that are currently missing. They should follow the same structure of \texttt{ir-gen-decoder} and \texttt{rtl-cpp}, adding a new virtual method to \texttt{Instruction} class and implemented by concrete derived classes, let's say \emph{generateIR()}.
+
+Please refer to the CGEN LLVM-IR Git repository\footnote{\url{https://polimicg.org/gitlab/leonardo.arcari/cgen-llvm-ir-generator}} for complete source code, how to run it and a sample of a working generated translator for ARC700 architecture\footnote{\url{https://www.synopsys.com/designware-ip/processor-solutions/arc-processors/arc-700-family.html}}.
+
 \end{document}

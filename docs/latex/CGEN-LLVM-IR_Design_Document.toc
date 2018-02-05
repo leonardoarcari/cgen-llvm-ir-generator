@@ -1,0 +1,34 @@
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}
+\contentsline {subsection}{\numberline {1.1}Scope}{1}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.2}Out of scope}{1}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}Project History}{1}{subsection.1.3}
+\contentsline {section}{\numberline {2}GNU CGEN}{2}{section.2}
+\contentsline {subsection}{\numberline {2.1}Introduction to CGEN}{2}{subsection.2.1}
+\contentsline {paragraph}{Goal}{2}{section*.2}
+\contentsline {paragraph}{Project idea}{2}{section*.3}
+\contentsline {subsection}{\numberline {2.2}CGEN RTL classes}{4}{subsection.2.2}
+\contentsline {subsubsection}{\numberline {2.2.1}CGEN's object system - cos.scm}{4}{subsubsection.2.2.1}
+\contentsline {paragraph}{Class}{4}{section*.6}
+\contentsline {paragraph}{Getters and Setters declaration}{5}{section*.9}
+\contentsline {paragraph}{Other methods declaration}{6}{section*.10}
+\contentsline {paragraph}{Method invokation}{6}{section*.12}
+\contentsline {subsubsection}{\numberline {2.2.2}Arch - mach.scm}{6}{subsubsection.2.2.2}
+\contentsline {subsubsection}{\numberline {2.2.3}Hardware - hardware.scm}{7}{subsubsection.2.2.3}
+\contentsline {subsubsection}{\numberline {2.2.4}Instruction - insn.scm}{8}{subsubsection.2.2.4}
+\contentsline {subsubsection}{\numberline {2.2.5}Ident - a common base class}{9}{subsubsection.2.2.5}
+\contentsline {subsection}{\numberline {2.3}Code Analysis}{10}{subsection.2.3}
+\contentsline {subsubsection}{\numberline {2.3.1}Entry Point}{10}{subsubsection.2.3.1}
+\contentsline {paragraph}{read.scm}{10}{section*.19}
+\contentsline {paragraph}{argv}{11}{section*.21}
+\contentsline {subsubsection}{\numberline {2.3.2}RTL-C Generator}{12}{subsubsection.2.3.2}
+\contentsline {paragraph}{RTL$\rightarrow $C generators}{13}{section*.28}
+\contentsline {paragraph}{Get and set hardware}{13}{section*.29}
+\contentsline {subsection}{\numberline {2.4}Conclusions}{14}{subsection.2.4}
+\contentsline {section}{\numberline {3}CGEN LLVM-IR}{15}{section.3}
+\contentsline {subsection}{\numberline {3.1}Introduction to CGEN LLVM-IR}{15}{subsection.3.1}
+\contentsline {paragraph}{Goal}{15}{section*.31}
+\contentsline {paragraph}{Overview}{15}{section*.32}
+\contentsline {subsection}{\numberline {3.2}CGEN LLVM-IR components}{16}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Translators design}{17}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}CGEN-IR commons}{19}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.5}Where to go from here?}{19}{subsection.3.5}

@@ -1,0 +1,714 @@
+\documentclass{article}
+% Package setup
+% To use < and >... Yes...
+\usepackage[T1]{fontenc}
+
+% UML diagrams
+\usepackage{tikz-uml}
+
+% Floats
+\usepackage{float}
+
+% Captions
+\usepackage[labelfont=bf]{caption}
+
+% HyperRef
+\usepackage{color}   %May be necessary if you want to color links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,
+    linkcolor=black,
+    urlcolor=blue
+}
+
+% Code listings
+\usepackage{listings}
+\usepackage{textcomp}
+
+% Scheme style definition
+\lstdefinelanguage{Scheme}{
+  morekeywords=[1]{define, define-syntax, define-macro, lambda, define-stream, stream-lambda},
+  morekeywords=[2]{begin, call-with-current-continuation, call/cc,
+    call-with-input-file, call-with-output-file, case, cond,
+    do, else, for-each, if,
+    let*, let, let-syntax, letrec, letrec-syntax,
+    let-values, let*-values,
+    and, or, not, delay, force,
+    quasiquote, quote, unquote, unquote-splicing,
+    map, fold, syntax, syntax-rules, eval, environment, query, nil },
+  morekeywords=[3]{import, export},
+  alsodigit=!\$\%&*+-./:<=>?@^_~,
+  sensitive=true,
+  morecomment=[l]{;},
+  morecomment=[s]{\#|}{|\#},
+  morestring=[b]",
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bf\ttfamily\color[rgb]{0,.3,.7},
+  commentstyle=\color[rgb]{0.133,0.545,0.133},
+  stringstyle={\color[rgb]{0.75,0.49,0.07}},
+  showstringspaces=false,
+  upquote=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  literate=*{`}{{`}}{1},
+  tabsize=2,
+}
+
+\begin{document}
+% Top matter
+\title{CGEN LLVM-IR \\ Design Document \vfill}
+\author{Leonardo Arcari \\ Politecnico di Milano}
+\date{February 2018}
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table of contents
+\tableofcontents
+\clearpage
+
+% Introductory section
+\pagenumbering{arabic}
+\section{Introduction}
+\subsection{Scope}
+This document is meant to provide a resource to those who are going to work with GNU CGEN and my extension to it: CGEN LLVM-IR. The purpose of this paper is to introduce the reader first to GNU CGEN from a code perspective, as GNU CGEN already provides a user guide. The reader will find in this document a code analysis, with a, possibly more clear, description of the main classes in Scheme source code in order to use them effectively.
+
+In second place, I will provide a similar description of the code that I wrote in order to extend GNU CGEN to allow the generation of C++ programs capable of translating binary programs into a semantically equivalent representation in LLVM-IR language.
+
+\subsection{Out of scope}
+In this paper I am not going to describe several topics related to GNU CGEN
+\begin{itemize}
+\item How to run GNU CGEN. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_2.html}}
+\item What is the plethora of features of GNU CGEN. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_1.html}}
+\item What is CGEN RTL and what each language feature does. There is a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html}}
+\item How to write a CGEN application to define your CPU architecture in RTL. Guess what? There's a manual online for it.\footnote{\url{https://sourceware.org/cgen/docs/cgen_8.html}}
+\end{itemize}
+Also, as a pre-requisite to completely understand this document, the reader should know Lisp in one of its many dialects. For soundness, be aware that CGEN is written in Scheme in the dialect implemented by Guile 1.8.
+
+\subsection{Project History}
+CGEN LLVM-IR generator is part of the project I was assigned to while taking the \emph{Code Transformation and Optimization} course held by Professor G. Agosta\footnote{\url{https://home.deib.polimi.it/agosta}} in the A.Y. 2017/2018. The idea of extending GNU CGEN, in order to generate C++ translators capable of producing a semantically-equivalent representation in LLVM-IR of a binary for a given architecture, is from Alessandro Di Federico, PhD\footnote{\url{https://clearmind.me/}}. 
+
+\clearpage
+\section{GNU CGEN}
+\subsection{Introduction to CGEN}
+In this section I would like to give a high-level presentation of GNU CGEN, what it is useful for and why we think that provides enough value for the purposes of our project.
+\paragraph{Goal}
+``The goal of CGEN (pronounced seejen, and short for "Cpu tools GENerator") is to provide a uniform framework and toolkit for writing programs like assemblers, disassemblers, and simulators without explicitly closing any doors on future things one might wish to do. In the end, its scope is the things the software developer cares about when writing software for the cpu (compilation, assembly, linking, simulation, profiling, debugging, ???)''\footnote{\url{https://sourceware.org/cgen/docs/cgen_1.html\#SEC3}}.
+
+They way CGEN plans to achieve this goal is centered around having a CPU description language, called \emph{RTL}, totally agnostic about the final goal. In RTL the programmer can describe:
+\begin{description}
+\item [CPU architectures] General purpose registers, status registers
+\item [ISA] Instructions, operands, instruction formats, instruction fields
+\item [Semantics] What is the output, what registers change and how when instruction A is executed?
+\end{description}
+
+And a lot more\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html}}.
+
+\paragraph{Project idea}
+The idea behind our project, CGEN LLVM-IR, is the following. CGEN is already able to generate GDB simulators for any architecture given its description in RTL language. Simulators, very simplistically, accept a binary program as input, emulate the hardware architecture in memory by means of variables to represent registers and emulate the execution of the input program line of code by line of code. This looks a lot like our objective.
+
+If we were required to outline the execution of our project, in fact, that would by sketched by the following steps:
+\begin{itemize}
+\item Allocate a set of LLVM-IR global variables to mock general purpose registers, program counter and CPU status registers.
+\item Disassemble the binary input to reconstruct the assembly instructions and their operands.
+\item Through LLVM framework, emit LLVM-IR code that mimics the semantic of each istruction and sets our \emph{mock registers} correctly.
+\end{itemize}
+
+With this workflow in mind, our approach was as much as conservative as we could. We wanted to reuse CGEN code as much as possible, so we analyzed CGEN source code deeply. We started by looking at the those components that were responsible of generating the GDB simulator.
+
+We discovered that the frontend part of CGEN could be easily reused. Frontend components tackles the problem of parsing RTL language to build an internal representation of language constructs and access their data efficiently.
+
+So language parsing and data structures were there to be used. We could not say the same for components dealing with simulators generation.
+
+It should be noted that GDB simulators are C programs, so CGEN was coded to emit C lines of code. Those components would have been a great reference for the logic that drives disassembling and instruction simulation, but they were required to be completely rewritten to emit C++ code. Unfortunately the C code generation was so tightly coupled in them that we had to write a whole new set of components to address our needs. More details are provided in section \ref{sec:cgen-llvm-ir}.
+\clearpage
+
+\subsection{CGEN RTL classes} \label{sec:rtl-classes}
+In this part of the document I want to provide an insight of Scheme classes in CGEN that represent internally the language constructs of RTL and allow the programmer to access the data written in the CPU description file.
+
+To better understand the relationship between classes, I first present an example of the structure of an RTL description.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlsimpleclass[x=0, y=0]{Architecture}
+		\umlsimpleclass[x=-2.5, y=-1]{cpu-family1}
+		\umlsimpleclass[x=-4, y=-2]{machine1}
+		\umlsimpleclass[x=-1, y=-2]{machine2}
+		\umlsimpleclass[x=2.5, y=-1]{cpu-family2}
+		\umlsimpleclass[x=4, y=-2]{machine3}
+		
+		\umlassoc{Architecture}{cpu-family1}
+		\umlassoc{Architecture}{cpu-family2}
+		\umlassoc{cpu-family1}{machine1}
+		\umlassoc{cpu-family1}{machine2}
+		\umlassoc{cpu-family2}{machine3}
+	\end{tikzpicture}
+	\caption{A graphical layout of top level RTL elements. The architecture is one of `sparc', `m32r', etc. Within the `sparc' architecture, cpu-family might be `sparc32', `sparc64', etc. Within the `sparc32' CPU family, the machine might be `sparc-v8', `sparclite', etc.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlsimpleclass[x=0, y=0]{ISA}
+		\umlsimpleclass[x=0, y=-1]{Instruction}
+		\umlsimpleclass[x=-2, y=-2]{operand1}
+		\umlsimpleclass[x=2, y=-2]{operand2}
+		\umlsimpleclass[x=-2, y=-3]{hw1+ifield1}
+		\umlsimpleclass[x=2, y=-3]{hw2+ifield2}
+		
+		\umlassoc{ISA}{Instruction}
+		\umlassoc{Instruction}{operand1}
+		\umlassoc{Instruction}{operand2}
+		\umlassoc{operand1}{hw1+ifield1}
+		\umlassoc{operand2}{hw2+ifield2}
+	\end{tikzpicture}
+	\caption{Instructions form their own hierarchy as each instruction may be supported by more than one machine}
+\end{figure}
+
+\subsubsection{CGEN's object system - cos.scm}
+Although Guile, the Scheme implementation supported by CGEN, provided an official object system in the 1.8 release, the CGEN author thought that things might have changed and he wanted to be sure not to be required to change the entire CGEN code base in case that happened. Thus he decided to implement his own object system and we must deal with it. I'm going to give a presentation of those feature that you might come across while working on CGEN codebase and you might need to know.
+
+\paragraph{Class}
+Classes is CGEN are implemented (of course) as vectors of information defining your class, as you can see in listing \ref{lst:class}
+\lstset{
+	frame=single,
+	numbers=left,
+	upquote=true
+}
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, label=lst:class, caption=A class in CGEN looks like this]
+#(class-tag
+	class-name
+	parent-name-list
+	elm-alist
+	method-alist
+	full-elm-initial-list
+	class-descriptor)
+\end{lstlisting}
+\end{figure}
+
+The fields you should care about are the following:
+\begin{description}
+\item[class-name] A name uniquely defining the class. E.g: \texttt{<arch>}
+\item[parent-name-list] A list of the names of parent classes (the inheritance tree).
+\item[elm-alist] A list of \texttt{(symbol private? vector-index . initial-value)} for this class only.
+\item[method-alist] An alist of \texttt{(symbol . (virtual? . procedure))} for this class only.
+\end{description}
+
+To declare a new class: \texttt{(class-make name parents elements methods)}
+An example of class declaration is available at listing \ref{lst:class-decl}
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, label=lst:class-decl, caption=An example of class declaration in CGEN]
+(define <mach>
+	(class-make 
+		'<mach>
+		'(<ident>)
+		'(
+			; cpu family this mach is a member of
+			cpu
+			; bfd name of mach
+			bfd-name
+			; list of <isa> objects
+			isas
+		)
+		nil)
+)
+\end{lstlisting}
+\end{figure}
+
+The above example shows a common practice in CGEN. Methods are defined after class declaration with the help of some macros/procedures.
+
+\paragraph{Getters and Setters declaration}
+To add getters and setters method to a class two convenient macros are provided:\\
+\texttt{define-getters (class class-prefix elm-names)} \\
+\texttt{define-setters (class class-prefix elm-names)}
+
+
+\paragraph{Other methods declaration}
+For all other kinds of methods two procedures are available:\\
+\texttt{(method-make! class name lambda)} \\
+\texttt{(method-make-virtual! class name lambda)}
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, caption=Example of methods declaration for a class]
+; Define getters for class <mach> for members
+; 'cpu', 'bfd-name' and 'isas' and name them
+; 'mach-<member>' where <member> is
+; [cpu|bfd-name|isas]
+(define-getters <mach> mach (cpu bfd-name isas))
+
+; Define setter for class <ifield> for member
+; 'follows' and name it 'ifld-follows'
+(define-setters <ifield> ifld (follows))
+
+; Define a method for class <ifield> named
+; 'get-field-value whose implementation is
+; defined by the lambda
+(method-make!
+ <ifield> 'get-field-value
+ (lambda (self)
+   (elm-get self 'value))
+)
+\end{lstlisting}
+\end{figure}
+
+\paragraph{Method invokation}
+CGEN's object system follows the Smalltalk way of implementing object orientation, that is by means of \emph{messages}. Thus we can invoke a method on  an object with:\\
+\texttt{(send object method-name . args)}
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, caption=Example of methods invokation]
+; We wrap a method invokation in a standard
+; Scheme procedure for simplicity of usage
+(define (ifld-set-value! self new-val)
+  (send self 'set-field-value! new-val)
+)
+\end{lstlisting}
+\end{figure}
+
+\subsubsection{Arch - mach.scm}
+Arch is the top level class in CGEN that records everything about a CPU.
+After parsing a .cpu file the programmer can refer to a global variable named \texttt{CURRENT-ARCH} to access an instance of Arch.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, name=Arch]{Arch}{
+			+ default-alignment : [aligned|unaligned|forced] \\
+			+ insn-lsb0? : bool \\
+			+ machs : (mach-name . sanitize-key)* \\
+			+ isas : (isa-name . sanitize-key)*
+		}{
+			+ current-arch-name () $\rightarrow$ str? \\
+			+ current-arch-insn-lsb0? () $\rightarrow$ boolean? \\
+			+ current-cpu-list () $\rightarrow$ list?\\
+			+ \ldots
+		}
+		\umlsimpleclass[x=-3.5, y=4]{Attribute}
+		\umlsimpleclass[x=-1.25, y=4]{Enum}
+		\umlsimpleclass[x=1, y=4]{Hardware}
+		\umlsimpleclass[x=3.5, y=4]{Keyword}
+		\umlsimpleclass[x=-3.5, y=-4]{Isa}
+		\umlsimpleclass[x=3.5, y=-4]{Mach}
+		\umlsimpleclass[x=-1.5, y=-4]{Insn}
+		\umlsimpleclass[x=1.5, y=-4]{Sfmt}
+		
+		\umlunicompo[mult=1..*, pos2=0.6]{Arch}{Attribute}
+		\umlunicompo[mult=1..*, pos2=0.6]{Arch}{Enum}
+		\umlunicompo[mult=1..*]{Arch}{Hardware}
+		\umlunicompo[mult=1..*]{Arch}{Keyword}
+		\umlunicompo[mult=1..*]{Arch}{Isa}
+		\umlunicompo[mult=1..*, pos2=0.55]{Arch}{Mach}
+		\umlunicompo[mult=1..*]{Arch}{Insn}
+		\umlunicompo[mult=1..*, pos2=0.6]{Arch}{Sfmt}
+	\end{tikzpicture}
+	\caption{Class diagram of <arch> CGEN class}
+\end{figure}
+
+\subsubsection{Hardware - hardware.scm} \label{sec:hardware}
+\texttt{<hardware-base>} is the base class for all hardware descriptions. The actual hardware objects inherit from this (e.g. register, immediate). This is used to describe registers, memory, and immediates.
+
+\texttt{mode} in diagram \ref{fig:hw-base} refers to one of the many data types you can specify in RTL. \href{https://sourceware.org/cgen/docs/cgen_3.html\#SEC161}{Look here for more information}.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, name=<hardware-base>]{<hardware-base>}{
+			+ sem-name : str?
+		}{
+			+ \ldots
+		}
+		\umlclass[x=2.5, y=2.25, name=<hw-asm>]{<hw-asm>}{
+			mode : [VOID|UINT|\ldots]	
+		}{}
+		\umlclass[x=-2.5, y=3, name=<array>]{<array>}{
+			+ mode : [VOID|UINT|\ldots] \\
+			+ dimensions : list?
+		}{
+			+ get-mode() $\rightarrow$ atom? \\
+			+ get-rank() $\rightarrow$ number? \\
+			+ get-shape() $\rightarrow$ list?
+		}
+		\umlsimpleclass[x=-1.5, y=-2]{<hw-register>}
+		\umlsimpleclass[x=1.5, y=-2]{<hw-pc>}
+
+		
+		\umlunicompo[geometry=-|, mult=1..*, pos2=1.8]{<hardware-base>}{<hw-asm>}
+		\umlunicompo[geometry=-|, mult=1..*, pos2=1.8]{<hardware-base>}{<array>}
+		\umlinherit{<hw-register>}{<hardware-base>}
+		\umlinherit{<hw-pc>}{<hardware-base>}
+	\end{tikzpicture}
+	\caption{Class diagram of hardware.scm CGEN classes}
+	\label{fig:hw-base}
+\end{figure}
+
+\subsubsection{Instruction - insn.scm}
+\texttt{<insn>} is the class to hold an instruction. This class is very important as it is an entry point to deal with instruction disassembling and translating into LLVM-IR.
+
+The programmer can retrieve the parsed list of ISA instructions with the nullary procedure \texttt{current-insn-list}.
+
+\texttt{semantics} member of \texttt{<insn>} contains the RTL source code explaining the instruction semantic. This gets compiled by CGEN and transformed into an \texttt{<rtx-func>} object representing the RTL expression in Scheme. The \texttt{<rtx-func>} object is stored in \texttt{compiled-semantics} member.
+
+\texttt{bitrange} member of \texttt{<ifield>} contains the field's offset, start, length, word-length and orientation ($msb==0$, $lsb==0$). Although this seems promising data, it is \emph{not trustworthy}. In fact, current stable release of CGEN (1.1 at the moment of writing) has issues in dealing with ISAs with variable length instructions, thus some values like \texttt{length} or \texttt{word-length} might be wrong. According to my research on this topic, only ISAs with instruction of fixed length (say 32bit) allow the programmer to exploit and trust values within \texttt{bitrange} member. For more complex architectures that value is misleading so it should be ignored.
+Some \emph{.cpu} declaring weird istruction sets provided a custom way to fetch instructions from binary programs. This requires more investigation.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, name=<insn>]{<insn>}{
+			+ syntax : str? \\
+			+ semantics : str? \\
+			+ compiled-semantics : <rtx-func>?
+		}{
+			+ \ldots
+		}
+		\umlclass[x=4, y=-3.5, name=<ifield>]{<ifield>}{
+			mode : [VOID|UINT|\ldots] \\
+			bitrange: <bitrange>? \\
+		}{}
+		\umlclass[x=-2.5, y=-3.5, name=<array>]{<iformat>}{
+			+ mask-length : integer? \\
+			+ length : integer? \\
+			+ mask : integer?
+		}{}
+		\umlclass[x=-2.5, y=-6, name=<sformat>]{<sformat>}{
+			+ length : integer? \\		
+		}{}
+		\umlunicompo[geometry=-|, mult=1..*, pos2=1.9]{<insn>}{<ifield>}
+		\umlunicompo[geometry=-|, mult=1..*, pos2=1.7]{<sformat>}{<ifield>}
+		\umlunicompo[mult=1..*]{<iformat>}{<ifield>}
+		\umlunicompo[mult=1]{<insn>}{<iformat>}
+		\umlunicompo[geometry=|-, anchors=-80 and 10, mult=1, pos2=1.8]{<insn>}{<sformat>}
+	\end{tikzpicture}
+	\caption{Class diagram of insn.scm and iformat.scm CGEN classes}
+\end{figure}
+
+\subsubsection{Ident - a common base class}
+One thing I did not mention so far is that every class described in this section inherits from a general base class: \texttt{<ident>}.
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, caption=<ident> class declaration]
+(define <ident>
+	(class-make '<ident> '()
+		'(name comment attrs)
+		'()))
+
+; getters and setters...
+\end{lstlisting}
+\end{figure}
+
+\begin{description}
+\item[name] Names must be valid Scheme symbols.
+\item[comment] Comments may be any number of lines, though generally succinct comments are preferable.
+\item[attributes] A list of attributes\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC56}}
+\end{description}
+\clearpage
+
+\subsection{Code Analysis}
+In this section I want to give an analysis on GNU CGEN execution flow from the program launch to the entry of the various components. This should help the programmer to know what source files to edit if they want extended CGEN functionalities and be able to call them from command line.
+
+In section \ref{sec:entryPoint} I am discussing about the command line interface the user exploits to run CGEN applications (e.g. simulators, disassembler, toolchain) and how to add new applications to it.
+
+In section \ref{sec:rtl-c} I am providing some insights on how CGEN generates C code from an RTL expression. Even though CGEN LLVM-IR is unrelated to this component, the program logic to emit C++ or LLVM-IR code is just the same, so we better learn from the wise GNU CGEN author and contemplate.
+
+\textbf{Note for the reader}: for the rest of this section I am writing about GNU CGEN project only, not CGEN LLVM-IR. This allows me to refer to files and procedure whose names are stable and reliable. Same concepts described hereinafter apply to CGEN LLVM-IR too. Still I am discussing about my project execution flow in section \ref{sec:cgen-llvm-ir}.
+
+\subsubsection{Entry Point} \label{sec:entryPoint}
+Let us begin with an example on how CGEN is run from command line
+
+\begin{figure}[H]
+\begin{lstlisting}
+guile -l guile.scm cgen-sim.scm # lots of parameters
+\end{lstlisting}
+\end{figure}
+
+With parameter \texttt{-l} we are kindly asking \texttt{Guile} to load the following source files: \texttt{guile.scm} and \texttt{cgen-sim.scm}. What is happening? We should forget \texttt{guile.scm} since it ``only'' sets some debugging variables in Guile for CGEN and shift our focus on \texttt{cgen-sim.scm}. 
+
+\texttt{cgen-sim.scm} is one of the many CGEN applications that are part of the GNU project. According to its name, it is responsible to generate \texttt{GDB} simulators for a given architecture. And here we find our first takehome lesson: do you want to extend CGEN for another purpose? Provide an application source file. In fact if we take look inside \texttt{cgen-sim.scm} we read code for:
+\begin{itemize}
+\item Setting up \textbf{init, clean-up and analyze} procedures
+\item Loading \textbf{additional source} files
+\item Handling command line \textbf{parameters}
+\end{itemize}
+
+\paragraph{read.scm}
+One little thing I should mention is the importance of this line of code:
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(load (string-append srcdir "/read.scm"))
+\end{lstlisting}
+\end{figure}
+
+Without going in too much details, \texttt{read.scm} loads all the Scheme source files to internally represent RTL language constructs (some of them were mentioned in section \ref{sec:rtl-classes}) and runs their \texttt{init procedures}. The ordering in which those procedure calls are done is meaningful and things blow up in no time. So I strongly advice the reader to simply add the above line of code in their CGEN application sources and forget about it.
+
+\paragraph{argv}
+The last thing I am mentioning is how command line parameters are defined and handled. Within \texttt{read.scm} a procedure named \texttt{cgen} is defined. Its purpose is to gather all those launch parameters I was referring to a few lines above. A sample of its invokation is provided:
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(cgen
+	#:argv argv
+	#:app-name "sim"
+	#:arg-spec sim-arguments
+	; Init procedure
+	#:init sim-init!
+	; Clean-up procedure
+	#:finish sim-finish!
+	; General purpose .cpu file
+	; analysis routine, not used
+	; in general
+	#:analyze sim-analyze!))
+\end{lstlisting}
+\end{figure}
+
+A careful eye must have spot the atom \texttt{sim-arguments}. That is our procedure name setting up the CGEN application command line parameters handlers. The programmer can provide their own implementation. A sample if provided hereinafter.
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(define sim-arguments
+	(list
+		(list "-A" "file" "generate arch.h in <file>"
+			#f
+	 		(lambda (arg) (file-write arg cgen-arch.h)))
+	 	; other params...
+	 )
+\end{lstlisting}
+\end{figure}
+
+A bit of documentation:
+\begin{description}
+\item["-A"] Command line argument.
+\item["file"] The formal parameter name following argument \texttt{-A}.
+\item["generate..."] Argument description.
+\item[\#f] You can place a string comment instead.
+\item[arg] The actual value for formal parameter \texttt{file}. Its value is the one passed from the command line.
+\end{description}
+
+Just because it took me a while to figure it how, note that \texttt{cgen-arch.h} is a procedure and it returns the C code to write on file \texttt{arg}.
+
+\subsubsection{RTL-C Generator} \label{sec:rtl-c}
+In this section I want to write about the architecture of \texttt{rtl-c.scm}, the component to generate C code given an RTL expression as input. Even if very unlikely, after all RTL is very popular nowadays, I recommend a refresh on the language features for a better understanding\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC47}}.
+
+Let us start from a user perspective. I have an RTL expression
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(add SI (const SI 1) (const SI 2))
+\end{lstlisting}
+\end{figure}
+
+and I want to compile it into C code I simply run 
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme]
+(rtl-c
+	; Expression mode
+	DFLT
+	; RTL expression
+	'(add SI (const SI 1) (const SI 2))
+	nil)
+\end{lstlisting}
+\end{figure}
+
+and I get a C expression (you can tell we are true because it is a macro)
+
+\begin{figure}[H]
+\begin{lstlisting}
+ADDSI (1, 2)
+\end{lstlisting}
+\end{figure}
+
+So far so good. Now we want to dig a little bit deeper and understand what is going on. First of all, the output we got is part of the \texttt{<c-expr>} class
+
+\begin{figure}[H]
+\begin{lstlisting}[language=Scheme, caption=Part of <c-expr> class declaration]
+(define <c-expr>
+	(class-make '<c-expr> nil
+		'(
+			; The mode of C-CODE.
+			mode
+			; The translated C code.
+			c-code
+			; The source expression, for debugging.
+			expr
+			; other things follow...
+		)
+		nil))
+\end{lstlisting}
+\end{figure}
+
+\texttt{<c-expr>} class is ubiquitous in \texttt{rtl-c.scm} component because it ties together RTL and C code. We now ask ourselves how its fields are filled in.
+
+\paragraph{RTL$\rightarrow$C generators}
+First of all, when an RTL expression is passed to \texttt{rtl-c} it gets compiled by \texttt{rtl.scm} component which I am not discussing in this document. Afterward, RTL expression is translated into C by means of a \textbf{translation table} that maps each RTL operation to a Scheme procedure to handle it. Within \texttt{rtl-c.scm} this table is named \texttt{-rtl-c-gen-table} and I mention it because it is \textbf{the key} to implement the translation from RTL to another language. The programmer must provide a map similar to this and most of the code in \texttt{rtl-c.scm} can be left unchanged\footnote{Well, actually you have to write a copy of it, changing most of the procedure names because there is no overloading in Scheme. Still, though tedious, it is better than writing it from scratch}. This is a huge gain in terms of code reusage and CGEN author must be praised for this.
+
+\paragraph{Get and set hardware}
+In RTL the programmer can assign values to hardware elements and read from them. This is a key feature to allow the description of instruction semantics or complex disassembling procedures. So how do we deal with it in emitting C code? Hardware get/set is handled by means of class methods. In fact each hardware class\footnote{Section \ref{sec:hardware}} must answer to the following messages
+\begin{description}
+\item[get-mode] Return mode of the hardware element.
+\item[cxmake-get] Return a \texttt{<c-expr>} to get its value.
+\item[gen-set-quiet] Return string of C code to set operand's value (no tracing).
+\item[gen-set-trace] Return string of C code to set operand's value.
+\end{description}
+
+This was each ``complex'' operand emits the C code for reading and writing its value(s).
+
+\subsection{Conclusions}
+In this section we went through many aspects of the design of GNU CGEN and what conventions its author adopted. I mentioned only those aspects that I found relevant in extending CGEN for our purposes, many other parts of CGEN are still unknown to me. Still, being gone through all of this provides us all the knowledge we need to understand CGEN LLVM-IR, what extensions I made and how I designed the translators CGEN LLVM-IR can generate.
+\vfill
+
+\begin{figure}[H]
+  \centering
+    \includegraphics[width=1.0\textwidth]{path_2}
+  \caption{``Over every mountain there is a path, although it may not be seen from the valley.'' \emph{(Theodore Roethke)}}
+  \label{fig:gull}
+\end{figure}
+\clearpage
+\section{CGEN LLVM-IR} \label{sec:cgen-llvm-ir}
+\subsection{Introduction to CGEN LLVM-IR}
+In this section I am presenting CGEN LLVM-IR, its goal and a high level overview of the components required to achieve such goal.
+
+\paragraph{Goal}
+The goal of CGEN LLVM-IR is to provide a software to generate binary translators. A binary translator is a program that takes a binary executable as input and outputs a semantically-equivalent translation of that program in another language. In our scenario, the output language is LLVM-IR\footnote{\url{https://llvm.org/docs/LangRef.html}}. The choice is driven by the already available set of LLVM compiler backends to target a wide set of architectures, but it could also be decompiled into higher level languages to restore the source code of that program or even a ``porting'' to another language. A lot of things are possible once we have a working LLVM-IR translation, so let us move toward it.
+
+\paragraph{Overview}
+In order to achieve such ambitious goal we can sketch an outline of the required components and their logical functionalities for the \textbf{binary translators} to generate:
+\begin{description}
+\item[Architecture emulation] Programs are compiled to run on an architecture that in general provides a set of memory locations (registers). Because we want to translate it into another language we need to emulate the presence of such registers. So the idea was to allocate a set of LLVM-IR global variables to mock general purpose registers, program counter and CPU status registers. This way any instruction working on memory elements would interact with logical variables instead.
+\item[Disassembler] We are targeting binary programs as input. Therefore we need to disassemble the binary input stream to reconstruct in memory what are the assembly instructions and their operands.
+\item[Translation] Through LLVM framework, emit LLVM-IR code that mimics the semantic of each istruction and reads/sets our \emph{mock registers} correctly.
+\end{description}
+
+So far so good. This was done many times in the past and decompilers such that already exist. There is something to mention, though: most of the decompilers available today are coded fixing the input architecture and the output language. For every architecture we want to support we must build from scratch a new decompiler. Wouldn't it be great to have a way to simply \emph{describe the architecture in a problem agnostic way} and have a software to generate such decompiler for us? Now that sounds interesting. Our idea was then to pickup GNU CGEN and its architecture agnosticity and extend it to generate decompilers for a given input \emph{cpu description}.
+
+\subsection{CGEN LLVM-IR components}
+From a component level perspective this is how CGEN LLVM-IR was designed
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\begin{umlpackage}{CGEN}
+		\begin{umlcomponent}{CGEN LLVM-IR}
+		\umlbasiccomponent{cgen-ir}
+		\umlbasiccomponent[x=3, y=-2]{ir-gen-registers}
+		\umlbasiccomponent[x=3, y=-4.5]{ir-gen-decoder}
+		\umlbasiccomponent[x=7, y=-4.5]{rtl-cpp}
+		\umlbasiccomponent[x=3, y=-7]{ir-gen-llvm}
+		\umlbasiccomponent[x=7, y=-7]{rtl-llvm}
+		\end{umlcomponent}
+		\end{umlpackage}
+		
+		\umlprovidedinterface[interface=command-line, distance=2.3cm]{cgen-ir}
+		
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-registers}
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-decoder}
+		\umlVHassemblyconnector[with port]{cgen-ir}{ir-gen-llvm}
+		\umlassemblyconnector[interface=C++]{ir-gen-decoder}{rtl-cpp}
+		\umlassemblyconnector[interface=LLVM]{ir-gen-llvm}{rtl-llvm}
+	\end{tikzpicture}
+	\caption{Component diagram of CGEN LLVM-IR}
+\end{figure}
+
+\begin{description}
+\item[cgen-ir] The application entry point. It accepts command-line parameters to drive the execution of the \emph{ir-gen-*} components.
+\item[ir-gen-registers] Generates a C++ source file exploiting LLVM framework to allocate LLVM-IR global variables that emulate the input architecture registers.
+\item[ir-gen-decoder] Generates C++ sources to define C++ classes that internally represent the assembly instructions for the input architecture and their operands. More details on the generated translator design in section \ref{sec:cpp-trans}.
+\item[rtl-cpp] Translates RTL into C++ code. This is the lower level of translation, where each RTL instruction is translated into C++ code that executes the RTL instruction semantics. E.g. \texttt{(add SI (const SI 1) (const SI 2))} is translated into a template function call \texttt{Add(1, 2)} which actually computes the \emph{sum between 1 and 2}.
+\item[ir-gen-llvm] Generates C++ sources to implement those functions that emit LLVM-IR code semantically equivalent to a given assembly instruction for the input architecture. \textbf{This component is not implemented yet}.
+\item[rtl-llvm] Generates C++ code that emits LLVM-IR code that is a translation of input RTL. This is a higher level of translation, because a given RTL expression \texttt{e} has to be translated into code that generates code semantically equivalent to \texttt{e}. \textbf{This component is not implemented yet}.
+\end{description}
+
+\subsection{Translators design} \label{sec:cpp-trans}
+Another design factor of CGEN LLVM-IR is how the generated translators are structured. During the early stages of development I had to go through a huge amount of C code generated by GNU CGEN for simulators to learn and understand which path could be followed in my project. It was a nightmare for sure. C is very far from being self-expressive, even less if it is machine generated.
+
+In my project I wanted generated C++ sources to be as human-readable as possible. C++ allows to structure your code in an object-oriented fashion, introducing abstractions to let the programmer stay sane. In addition I was not sure about the successful outcome of CGEN LLVM-IR and I forsaw that I would have had to edit the generated translators manually to test the many ways of doing things. I was, and still I am not, an expert in managing such low-level data so I needed a solution to abstract details away and encapsulate them in higher level components.
+
+The class architecture I came up with is shown in figure \ref{fig:trans-insns}.
+
+Hereinafter I am providing a rationale that drove this design.
+\begin{description}
+\item[Instruction::make()] A \emph{factory method} to instantiate an implementation of Instruction. Let us set the following scenario: In disassembling a binary program all you have is a stream of bytes. Say you know the instruction length, \texttt{L}. You take the first \texttt{L} bytes of the stream that form a \texttt{word}. Now you check the first bytes of the \texttt{word} to understand what instruction that \texttt{word} is, say it is an \texttt{AddInstruction}. Ok, \texttt{AddInstruction} is dissassembled doing this and that. Now repeat. Next instruction is a \texttt{LoadInstruction}. Oh, I have to disassemble it in that other way. And so on and so forth.
+
+I see a lot of room for \emph{Strategy pattern} here. How about having a \emph{factory method} that only checks the first bytes of a \texttt{word} to understand what instruction that \texttt{word} represents and \emph{delegates} the decoding to the corresponding class? And here it comes \texttt{parseSfmt()}.
+\item[parseSfmt()] A \emph{strategy method}, \texttt{virtual} in the base class and implemented by each concrete \texttt{Instruction} derived class. Its purpose is straightforward: take the instruction \texttt{word}, disassemble it and fill the class members with the decoded values. This is possible because when \texttt{parseSfmt()} is invoked we know what assembly instruction those bytes represent.
+\item[wordType trait] The type of an instruction word (e.g. \texttt{uint32\_t}).
+\item[chuckType trait] The type of a word chuck (e.g. \texttt{uint16\_t}). Some architectures require a word to be read from byte stream at chunks of smaller size.
+\item[endianness trait] The endiannes of the architecture.
+\end{description}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, type=abstract, name=Instruction]{Instruction}{
+			+ wordType : type \\
+			+ chunkType : type \\
+			+ endianness : llvm::endianness
+		}{
+			\umlstatic{+ make(rawInstruction : uint32\_t) : unique\_ptr<Instruction>} \\
+			\umlvirt{+ parseSfmt()} \\
+			\umlvirt{+ dump() : string}
+		}
+	
+		\umlclass[x=-3, y=-4, name=AddInstr]{AddInstr}{}{
+			+ parseSfmt() \\
+			+ dump() : string \\
+			+ getSfmt() : AddSFormat
+		}
+		\umlclass[x=3, y=-4, name=SubInstr]{SubInstr}{}{
+			+ parseSfmt() \\
+			+ dump() : string \\
+			+ getSfmt() : SubSFormat
+		}
+		
+		\umlclass[x=-3, y=-8, name=AddSFormat]{AddSFormat}{
+			+ field\_a : uint32\_t \\
+			+ field\_b : uint32\_t \\
+			+ field\_c : uint32\_t
+		}{
+			+ dump() : string
+		}
+		\umlclass[x=3, y=-8, name=SubSFormat]{SubSFormat}{
+			+ field\_a : uint32\_t \\
+			+ field\_b : uint32\_t \\
+			+ field\_c : uint32\_t
+		}{
+			+ dump() : string
+		}
+		
+		\umlimpl{AddInstr}{Instruction}
+		\umlimpl{SubInstr}{Instruction}
+		\umlunicompo[mult=1]{AddInstr}{AddSFormat}
+		\umlunicompo[mult=1]{SubInstr}{SubSFormat}
+	\end{tikzpicture}
+	\caption{Translators design - Instructions and their formats}
+	\label{fig:trans-insns}
+\end{figure}
+\clearpage
+
+\subsection{CGEN-IR commons}
+In order to support the translators execution a I wrote the \texttt{cgen-ir-common.h} source file to define those functions common to all generated translators. They support the input binary reading and the decompilation step by means of \texttt{template functions}.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\umlclass[x=0, y=0, type=abstract, name=CgenIRContext]{CgenIRContext}{
+			- binary\_program : char * \\
+			- program\_counter : char *
+		}{
+			+ readWord<T, ChunkType, Endianness>() : T \\
+			+ hasNext() : bool
+			+ incrementPc(byte : size\_t)
+		}
+	\end{tikzpicture}
+	\caption{CGEN LLVM-IR translation context}
+\end{figure}
+
+\subsection{Where to go from here?}
+At the moment of writing the development of CGEN LLVM-IR stopped at a working disassembling feature. Possible future steps could be implementing the \texttt{ir-gen-llvm} and \texttt{rtl-llvm} components that are currently missing. They should follow the same structure of \texttt{ir-gen-decoder} and \texttt{rtl-cpp}, adding a new virtual method to \texttt{Instruction} class and implemented by concrete derived classes, let's say \emph{generateIR()}.
+
+Please refer to the CGEN LLVM-IR Git repository\footnote{\url{https://polimicg.org/gitlab/leonardo.arcari/cgen-llvm-ir-generator}} for complete source code, how to run it and a sample of a working generated translator for ARC700 architecture\footnote{\url{https://www.synopsys.com/designware-ip/processor-solutions/arc-processors/arc-700-family.html}}.
+
+\end{document}

@@ -311,7 +311,7 @@ After parsing a .cpu file the programmer can refer to a global variable named \t
 \subsubsection{Hardware - hardware.scm} \label{sec:hardware}
 \texttt{<hardware-base>} is the base class for all hardware descriptions. The actual hardware objects inherit from this (e.g. register, immediate). This is used to describe registers, memory, and immediates.
 
-\texttt{mode} in diagram \ref{fig:hw-base} refers to one of the many data types you can specify in RTL. \href{https://sourceware.org/cgen/docs/cgen_3.html\#SEC161}{Look here for more information}.
+\texttt{mode} in diagram \ref{fig:hw-base} refers to one of the many data types you can specify in RTL. Please refer to the online manual for more information\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC161}}.
 
 \begin{figure}[H]
 	\centering
@@ -490,7 +490,7 @@ A bit of documentation:
 Just because it took me a while to figure it how, note that \texttt{cgen-arch.h} is a procedure and it returns the C code to write on file \texttt{arg}.
 
 \subsubsection{RTL-C Generator} \label{sec:rtl-c}
-In this section I want to write about the architecture of \texttt{rtl-c.scm}, the component to generate C code given an RTL expression as input. Even if very unlikely, after all RTL is very popular nowadays, I recommend a refresh on the language features for a better understanding\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC47}}.
+In this section I want to write about the architecture of \texttt{rtl-c.scm}, the component to generate C code given an RTL expression as input. Even if possibly unnecessary, after all RTL is very popular nowadays, I recommend a refresh on the language features for a better understanding\footnote{\url{https://sourceware.org/cgen/docs/cgen_3.html\#SEC47}}.
 
 Let us start from a user perspective. I have an RTL expression
 
@@ -500,7 +500,7 @@ Let us start from a user perspective. I have an RTL expression
 \end{lstlisting}
 \end{figure}
 
-and I want to compile it into C code I simply run 
+and I want to compile it into C code. I can simply run 
 
 \begin{figure}[H]
 \begin{lstlisting}[language=Scheme]
@@ -554,7 +554,7 @@ In RTL the programmer can assign values to hardware elements and read from them.
 \item[gen-set-trace] Return string of C code to set operand's value.
 \end{description}
 
-This was each ``complex'' operand emits the C code for reading and writing its value(s).
+This way each ``complex'' operand emits the C code for reading and writing its value(s). \emph{Delegation} for the win.
 
 \subsection{Conclusions}
 In this section we went through many aspects of the design of GNU CGEN and what conventions its author adopted. I mentioned only those aspects that I found relevant in extending CGEN for our purposes, many other parts of CGEN are still unknown to me. Still, being gone through all of this provides us all the knowledge we need to understand CGEN LLVM-IR, what extensions I made and how I designed the translators CGEN LLVM-IR can generate.
@@ -582,7 +582,7 @@ In order to achieve such ambitious goal we can sketch an outline of the required
 \item[Translation] Through LLVM framework, emit LLVM-IR code that mimics the semantic of each istruction and reads/sets our \emph{mock registers} correctly.
 \end{description}
 
-So far so good. This was done many times in the past and decompilers such that already exist. There is something to mention, though: most of the decompilers available today are coded fixing the input architecture and the output language. For every architecture we want to support we must build from scratch a new decompiler. Wouldn't it be great to have a way to simply \emph{describe the architecture in a problem agnostic way} and have a software to generate such decompiler for us? Now that sounds interesting. Our idea was then to pickup GNU CGEN and its architecture agnosticity and extend it to generate decompilers for a given input \emph{cpu description}.
+So far so good. This was done many times in the past and decompilers such that already exist. There is something to mention, though: most of the decompilers available today are coded fixing the input architecture and the output language. For every architecture we want to support, we must build from scratch a new decompiler. Wouldn't it be great to have a way to simply \emph{describe the architecture in a problem-agnostic way} and have a software to generate such decompiler for us? Now that sounds interesting. Our idea was then to pickup GNU CGEN and its architecture agnosticity and extend it to generate decompilers for a given input \emph{cpu description}.
 
 \subsection{CGEN LLVM-IR components}
 From a component level perspective this is how CGEN LLVM-IR was designed
@@ -616,7 +616,7 @@ From a component level perspective this is how CGEN LLVM-IR was designed
 \item[cgen-ir] The application entry point. It accepts command-line parameters to drive the execution of the \emph{ir-gen-*} components.
 \item[ir-gen-registers] Generates a C++ source file exploiting LLVM framework to allocate LLVM-IR global variables that emulate the input architecture registers.
 \item[ir-gen-decoder] Generates C++ sources to define C++ classes that internally represent the assembly instructions for the input architecture and their operands. More details on the generated translator design in section \ref{sec:cpp-trans}.
-\item[rtl-cpp] Translates RTL into C++ code. This is the lower level of translation, where each RTL instruction is translated into C++ code that executes the RTL instruction semantics. E.g. \texttt{(add SI (const SI 1) (const SI 2))} is translated into a template function call \texttt{Add(1, 2)} which actually computes the \emph{sum between 1 and 2}.
+\item[rtl-cpp] Translates RTL into C++ code. This is the lowest level of translation, where each RTL instruction is translated into C++ code that executes the RTL instruction semantics. E.g. \texttt{(add SI (const SI 1) (const SI 2))} is translated into a template function call \texttt{Add(1, 2)} which actually computes the \emph{sum between 1 and 2}.
 \item[ir-gen-llvm] Generates C++ sources to implement those functions that emit LLVM-IR code semantically equivalent to a given assembly instruction for the input architecture. \textbf{This component is not implemented yet}.
 \item[rtl-llvm] Generates C++ code that emits LLVM-IR code that is a translation of input RTL. This is a higher level of translation, because a given RTL expression \texttt{e} has to be translated into code that generates code semantically equivalent to \texttt{e}. \textbf{This component is not implemented yet}.
 \end{description}

@@ -21,14 +21,16 @@ Here's a brief list of tasks to be accomplished for a working prototype of the g
 ## Hands-on
 To run *CGEN LLVM IR generator*, a convenient Python script is provided to hide the odds and quirks of Scheme and its implementation in Guile.
 ### Prerequisites
-We assume you have a working *Guile 1.8* environment set up on your machine, with the ```guile``` executable exported in your system PATH.
+We assume you have a working *Guile 1.8* environment set up on your machine, with the ```guile``` executable exported in your system PATH. A guide to compile and install it is [available here](docs/build_guile.md).
+
 Also you are required to have *LLVM 3.8.0* (+ development headers) installed (CMake must be able to find LLVM CMake Find script).
 Optionally, you will need ```clang-format``` installed to perform code formatting on generated C++ source files.
 
 ### Running CGEN-IR:
 ```
 $ ./cgen-ir.py --help
-usage: cgen-ir.py [-h] -a ARCH -m MACHINE [-t DEC_H] [-d DEC_CPP] [-r REG_H]
+usage: cgen-ir.py [-h] -a ARCH -m MACHINE [-i ISA] [-t DEC_H] [-d DEC_CPP]
+                  [-r REG_H]
                   dstPath
 
 A generator of LLVM-IR generators. Yes.
@@ -41,6 +43,7 @@ optional arguments:
   -a ARCH, --arch ARCH  .cpu description file
   -m MACHINE, --machine MACHINE
                         Variant of the architecture
+  -i ISA, --isa ISA     ISA name of the architecture
   -t DEC_H, --decoder-header DEC_H
                         Decoder header filename
   -d DEC_CPP, --decoder-src DEC_CPP
@@ -57,6 +60,8 @@ destPath    destination directory where to generate sources in
 ```
 
 If you want to manually specify the name of generated sources you can use _-t, -d, -r_ arguments.
+
+**Care:** If your target .cpu file has multiple ISAs defined, you must provide a _-i_ argument declaring which one you want to generate a translator for.
 
 ### Compile generated translator
 _cgen-ir.py_ script generates source files along with a _non-necessarily-working_ driver (i.e. ```main.cpp```) and a ```CMakeLists.txt``` file.

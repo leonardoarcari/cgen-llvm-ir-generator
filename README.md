@@ -10,12 +10,12 @@ Here's a brief list of tasks to be accomplished for a working prototype of the g
 - [ ] CPU registers allocation
   - [x] Global variables allocation
   - [ ] Test correctness towards .cpu files
-- [ ] Disassabler
+- [x] Disassambler
   - [x] Read an instruction word from a byte stream
   - [x] Decode instruction opcode
   - [x] Decode instruction fields into in-memory objects
   - [x] Provide dump() facilities
-  - [ ] Test against available .cpu files
+  - [x] Test against available .cpu files
 - [ ] Semantic translator
 
 ## Hands-on

@@ -54,7 +54,7 @@ def gen_include_guards(header):
 
 
 def copy_commons(params):
-    common_p = Path('./pseudo-generated/cgen-ir-common.h')
+    common_p = Path('./translator-commons/cgen-ir-common.h')
     dst_common = Path(params['destpath'], 'cgen-ir-common.h')
     with common_p.open() as src:
         with dst_common.open(mode='w') as dst:

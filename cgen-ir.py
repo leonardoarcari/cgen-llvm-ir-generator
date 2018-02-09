@@ -122,7 +122,7 @@ def generate_cmake_src(params):
         dst.write('add_executable(' + arch + ' main.cpp ${SOURCE_FILES})\n')
         dst.write('llvm_map_components_to_libnames'
                   '(llvm_libs support core irreader)\n'
-                  'target_link_libraries(cris ${llvm_libs})\n')
+                  'target_link_libraries(' + arch + ' ${llvm_libs})\n')
 
 
 def clang_format_all(params):
@@ -139,11 +139,16 @@ def clang_format_all(params):
 
 def generate_all(params):
     guile_command = ('guile -l ./cgen/guile.scm ./cgen/cgen-ir.scm ' +
-                     '-v -v -v -s ./cgen -a ' + params['arch'] +
-                     ' -m ' + params['machine'] +
-                     ' -T ' + params['decoder-header'] +
-                     ' -D ' + params['decoder-src'] +
-                     ' -R ' + params['registers-header'])
+                     '-v -v -v -s ./cgen -a ' + params['arch'])
+
+    # Check if 'isa' parameter
+    if 'isa' in params:
+        guile_command += ' -i ' + params['isa']
+
+    guile_command += (' -m ' + params['machine'] +
+                      ' -T ' + params['decoder-header'] +
+                      ' -D ' + params['decoder-src'] +
+                      ' -R ' + params['registers-header'])
     try:
         subprocess.run(guile_command, shell=True, check=True,
                        stderr=subprocess.STDOUT)
@@ -186,6 +191,8 @@ def build_guile_params(args):
     params['arch'] = args.arch
     params['machine'] = args.machine
     params['destpath'] = args.dstPath
+    if args.isa:
+        params['isa'] = args.isa
     if args.dec_h:
         params['decoder-header'] = args.dstPath + "/" + args.dec_h
     else:
@@ -211,6 +218,7 @@ def main():
     dst_desc = 'Destination path'
     a_desc = '.cpu description file'
     m_desc = 'Variant of the architecture'
+    i_desc = 'ISA name of the architecture'
     t_desc = 'Decoder header filename'
     d_desc = 'Decoder source filename'
     r_desc = 'Registers allocation source filename'
@@ -218,6 +226,7 @@ def main():
     parser.add_argument('-a', '--arch', help=a_desc, required=True)
     parser.add_argument('-m', '--machine', help=m_desc, required=True)
     parser.add_argument('dstPath', help=dst_desc, default='./')
+    parser.add_argument('-i', '--isa', dest='isa', help=i_desc)
     parser.add_argument('-t', '--decoder-header', dest='dec_h', help=t_desc)
     parser.add_argument('-d', '--decoder-src', dest='dec_cpp', help=d_desc)
     parser.add_argument('-r', '--registers-header', dest='reg_h', help=r_desc)

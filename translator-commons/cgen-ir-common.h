@@ -238,12 +238,13 @@ template <typename D, typename S> inline D ExtTo(S x) {
 }
 
 // Not sure about semantic exactness of the following.
-// Need more investigation.
 
+// TODO: Need more investigation.
 template <typename D, typename S> inline D ZExtTo(S x) {
   return static_cast<D>(x);
 }
 
+// TODO: Need more investigation.
 template <typename D, typename S> inline D TruncTo(S x) {
   return static_cast<D>(x);
 }

@@ -4,6 +4,8 @@ import argparse
 import subprocess
 from os import SEEK_SET
 from pathlib import Path
+import subprocess
+
 
 MAIN_SRC = """#include <iostream>
 
@@ -41,6 +43,9 @@ COMPILE_OPTS = """add_compile_options(-g -O3 -std=c++0x \
 -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
 """
 
+SHELL_RES = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
+                           stdout=subprocess.PIPE)
+ROOT = Path(SHELL_RES.stdout.decode().replace('\n', ''))
 
 def gen_include_guards(header):
     guard_name = '_'
@@ -54,7 +59,7 @@ def gen_include_guards(header):
 
 
 def copy_commons(params):
-    common_p = Path('./translator-commons/cgen-ir-common.h')
+    common_p = ROOT / 'translator-commons/cgen-ir-common.h'
     dst_common = Path(params['destpath'], 'cgen-ir-common.h')
     with common_p.open() as src:
         with dst_common.open(mode='w') as dst:
@@ -107,7 +112,7 @@ def generate_cmake_src(params):
     with cmake.open(mode='w') as dst:
         dst.write('cmake_minimum_required(VERSION 3.5)\n')
         dst.write('project(' + arch + ' CXX)\n\n')
-        dst.write('find_package(LLVM REQUIRED CONFIG)\n\n')
+        dst.write('find_package(LLVM 3.8.1 REQUIRED CONFIG)\n\n')
         dst.write('message(STATUS "Found LLVM '
                   '${LLVM_PACKAGE_VERSION}")\n'
                   'message(STATUS "Using LLVMConfig.cmake '
@@ -138,8 +143,9 @@ def clang_format_all(params):
 
 
 def generate_all(params):
-    guile_command = ('guile -l ./cgen/guile.scm ./cgen/cgen-ir.scm ' +
-                     '-v -v -v -s ./cgen -a ' + params['arch'])
+    guile_command = ('guile -l ' + str(ROOT) + '/cgen/guile.scm ' + str(ROOT) +
+                     '/cgen/cgen-ir.scm ' + '-v -v -v -s ' + str(ROOT) +
+                     '/cgen -a ' + params['arch'])
 
     # Check if 'isa' parameter
     if 'isa' in params:
@@ -225,7 +231,7 @@ def main():
 
     parser.add_argument('-a', '--arch', help=a_desc, required=True)
     parser.add_argument('-m', '--machine', help=m_desc, required=True)
-    parser.add_argument('dstPath', help=dst_desc, default='./')
+    parser.add_argument('dstPath', help=dst_desc, default=str(ROOT))
     parser.add_argument('-i', '--isa', dest='isa', help=i_desc)
     parser.add_argument('-t', '--decoder-header', dest='dec_h', help=t_desc)
     parser.add_argument('-d', '--decoder-src', dest='dec_cpp', help=d_desc)

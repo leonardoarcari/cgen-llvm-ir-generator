@@ -8,3 +8,4 @@ cgen/*.cpp
 # Build stuff
 **/build
 demo/
+result

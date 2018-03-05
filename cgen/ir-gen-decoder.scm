@@ -383,7 +383,7 @@
     (-gen-decode-bits (dtable-guts-bitnums table-guts)
       (dtable-guts-startbit table-guts)
       (dtable-guts-bitsize table-guts)
-      "rawInstruction" "entireRawInstruction" lsb0?
+      "rawInstruction" "rawInstruction" lsb0?
     )
    ";\n"
     indent "switch (opcode) {\n"
@@ -1104,7 +1104,15 @@ public:
 
 (define ifld-bitrange (elm-make-getter <ifield> 'bitrange))
 
-; TODO: COMMENT
+; TODO: Bitrange member is not trustworthy.
+; In fact, current stable release of CGEN (1.1 at
+; the moment of writing) has issues in dealing with ISAs with variable length
+; instructions, thus some values like length or word-length might be wrong.
+; According to my research on this topic, only ISAs with instruction of fixed length
+; (say 32bit) allow the programmer to exploit and trust values within bitrange
+; member. For more complex architectures that value is misleading so it should
+; be ignored. Some .cpu declaring weird istruction sets provided a custom way to
+; fetch instructions from binary programs. This requires more investigation.
 (define (-gen-sfmt-bitrange sfmt indent)
   (logit 2 "Sfmt " (obj:name sfmt) "\n")
   (if (> (sfmt-length sfmt) 0) ; Do for real sformats only

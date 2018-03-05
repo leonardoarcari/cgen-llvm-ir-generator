@@ -1,0 +1,35 @@
+#!/bin/bash
+
+PROJECT_ROOT=`git rev-parse --show-toplevel`
+rm -rf /tmp/llvm-cgen/
+
+while read LINE; do
+    SPLIT=(${LINE//,/ })
+    CPU=${SPLIT[0]}
+    MACH=${SPLIT[1]}
+    ISA=${SPLIT[2]}
+    echo $CPU $MACH $ISA> /dev/stderr
+
+    OUTPUT="/tmp/llvm-cgen/$CPU-$MACH"
+    mkdir -p "$OUTPUT"
+    python3 $PROJECT_ROOT/cgen-ir.py -a "$PROJECT_ROOT/cpu/$CPU" -m "$MACH" -i "$ISA" "$OUTPUT" >& /dev/null;
+    if [ $? -eq 0 ]; then
+        pushd "$OUTPUT" >& /dev/null
+        mkdir build
+        cd build
+        cmake .. >& /dev/null
+        if [ $? -eq 0 ]; then
+            make >& /dev/null
+            if [ $? -eq 0 ]; then
+                echo "$CPU,$MACH,success";
+            else
+                echo "$CPU,$MACH,make-failed";
+            fi
+        else
+            echo "$CPU,$MACH,cmake-failed";
+        fi
+        popd >& /dev/null
+    else
+        echo "$CPU,$MACH,generation-failed";
+    fi
+done

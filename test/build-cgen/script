@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PROJECT_ROOT="../../"
+CGEN_PATH="/path/to/gnu/cgen/"/cgen # Set here the path to GNU CGEN cgen folder
+
+
+rm -rf /tmp/cgen/
+
+while read LINE; do
+    SPLIT=(${LINE//,/ })
+    CPU=${SPLIT[0]}
+    MACH=${SPLIT[1]}
+    ISA=${SPLIT[2]}
+    PREFIX="${MACH}-${ISA}"
+    echo $CPU $MACH > /dev/stderr
+
+    OUTPUT="/tmp/cgen/$CPU-$MACH"
+    mkdir -p "$OUTPUT"
+    guile -l $CGEN_PATH/guile.scm $CGEN_PATH/cgen-sim.scm -v -v -v -s $CGEN_PATH -a "$PROJECT_ROOT/cpu/$CPU" -m "$MACH" -i "$ISA" -A $OUTPUT/${PREFIX}-arch.h -B $OUTPUT/${PREFIX}-arch.c -C $OUTPUT/cpu-${PREFIX}.h -U $OUTPUT/cpu-${PREFIX}.c -T $OUTPUT/${PREFIX}-decode.h -D $OUTPUT/${PREFIX}-decode.c -S $OUTPUT/${PREFIX}-semantics.c -X $OUTPUT/${PREFIX}-sem-switch.c >& /dev/null;
+    if [ $? -eq 0 ]; then
+        echo "$CPU,$MACH,generation-success";
+    else
+        echo "$CPU,$MACH,generation-failed";
+    fi
+done

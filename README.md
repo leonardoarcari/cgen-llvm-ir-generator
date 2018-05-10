@@ -76,6 +76,6 @@ $ make
 
 
 ### Examples
-An example on CGEN LLVM IR generator usage is available for ARC700 architecture [here.](https://polimicg.org/gitlab/leonardo.arcari/cgen-llvm-ir-generator/tree/master/test/arc700)
+An example on CGEN LLVM IR generator usage is available for ARC700 architecture [here.](test/arc700)
 
 [1]: https://sourceware.org/cgen/
